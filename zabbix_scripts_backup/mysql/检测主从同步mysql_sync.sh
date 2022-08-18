@@ -1,0 +1,1 @@
+mysql -uroot -e 'show slave status\G' 2>/dev/null | grep -E "Slave_IO_Running:|Slave_SQL_Running:" | awk '{print $2}' | grep -c Yes
