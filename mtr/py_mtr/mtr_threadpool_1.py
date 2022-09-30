@@ -17,7 +17,7 @@ month1 = str(today.month)
 day = str(today.day)
 hours = str(time.strftime('%H',time.localtime(time.time())))
 
-
+#执行的语句
 def run(ip,year,month,year1,month1,day,region,company,hours,discriptions):
     result=os.popen('mtr -r -c 56 -n %s >> /data/mtr/%s年%s月/%s年%s月%s日/%s/%s/%s-%s.txt' %(ip,year,month,year1,month1,day,region,company,hours,discriptions)).read()
     #print(result)
