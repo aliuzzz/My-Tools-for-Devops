@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QSlider, QMessageBox
-from PyQt6.QtGui import QColor, QPalette, QRegularExpressionValidator, QFont
+from PyQt6.QtGui import QIcon, QColor, QPalette, QRegularExpressionValidator, QFont
 from PyQt6.QtCore import Qt, QRegularExpression
 
 class MyWidget(QWidget):
@@ -11,6 +11,9 @@ class MyWidget(QWidget):
     def initUI(self):
 
         self.setGeometry(300, 300, 300, 200)
+
+        # 设置图标
+        self.setWindowIcon(QIcon("cal-account\ico\cal.ico"))
 
         self.price_label = QLabel('出售单价(元/GB/月)')
         self.price_edit = QLineEdit()
@@ -46,7 +49,7 @@ class MyWidget(QWidget):
         self.result_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # 添加“公式”标签  
-        self.formula_label = QLabel('当前公式：')
+        self.formula_label = QLabel('-------------------')
         self.formula_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         #这里公式可以调整成可选项，QComboBox(),让QComBox的值传到下面的result中，不同的公式出不同的result

@@ -1,3 +1,5 @@
+##新增把current改为可更改的，新增实时显示公式
+##待整理，还没调通
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QSlider, QMessageBox
 from PyQt6.QtGui import QColor, QPalette, QRegularExpressionValidator, QFont
@@ -41,6 +43,10 @@ class MyWidget(QWidget):
         
         self.current_value_label = QLabel('0')
         self.current_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.line_edit = QLineEdit(self)
+        self.line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.line_edit.setHidden(True)    
 
         self.result_label = QLabel('0')
         self.result_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -92,6 +98,8 @@ class MyWidget(QWidget):
         }
         """
         self.current_slider.setStyleSheet(slider_style)
+    # 连接QLabel的单击事件，以便在单击时将QLineEdit设置为可编辑状态
+        self.current_value_label.mousePressEvent = self.edit_text 
 
         vbox = QVBoxLayout()
         vbox.addWidget(self.price_label)
@@ -109,6 +117,7 @@ class MyWidget(QWidget):
         current_hbox = QHBoxLayout()
         current_hbox.addWidget(self.current_label)
         current_hbox.addWidget(self.current_value_label)
+        current_hbox.addWidget(self.line_edit)
         vbox.addLayout(current_hbox)
 
         vbox.addWidget(self.current_slider)
@@ -117,6 +126,27 @@ class MyWidget(QWidget):
 
         self.setLayout(vbox)
         self.setWindowTitle('流量计算器')
+
+    def edit_text(self, event):
+        # 将QLineEdit设置为可编辑状态，并将其内容设置为QLabel的文本
+        self.line_edit.setHidden(False)
+        self.line_edit.setText(self.current_value_label.text())
+        self.line_edit.setFocus()
+
+        # 将QLabel设置为不可见状态
+        self.current_value_label.setHidden(True)
+
+        # 连接QLineEdit的完成编辑事件，以便在完成编辑时将QLineEdit设置为不可编辑状态，并将其内容设置为QLabel的文本
+        self.line_edit.editingFinished.connect(self.update_label)
+
+    def update_label(self):
+        # 将QLineEdit设置为不可编辑状态，并将其内容设置为QLabel的文本
+        self.line_edit.setHidden(True)
+        self.current_value_label.setHidden(False)
+        self.current_value_label.setText(self.line_edit.text())
+
+        value = float(self.line_edit.text())
+        self.current_slider.setValue(int(value))
 
     def update_label(self, value):
     # 获取输入框中的值
@@ -140,8 +170,8 @@ class MyWidget(QWidget):
         subsidy = float(subsidy_text)
         custom = float(custom_text)
         #current = float(current_text)
-        current = float(self.current_slider.value())
-
+       # current = float(self.current_slider.value())
+        current = float(value)
         result = 0
         #result公式,这里如果很多条件可以用match..case方法来写
         if current >= custom and (current - subsidy) >= minimum:
