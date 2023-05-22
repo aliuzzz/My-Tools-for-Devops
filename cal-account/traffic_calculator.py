@@ -12,11 +12,11 @@ class MyWidget(QWidget):
 
         self.setGeometry(300, 300, 300, 200)
 
-        self.price_label = QLabel('出售单价(元/GB/年)')
+        self.price_label = QLabel('出售单价(元/GB/月)')
         self.price_edit = QLineEdit()
         self.price_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+([.]\\d+)?")))
 
-        self.cost_label = QLabel('成本价(元/GB/年)')
+        self.cost_label = QLabel('成本价(元/GB/月)')
         self.cost_edit = QLineEdit()
         self.cost_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+([.]\\d+)?")))
         
@@ -125,10 +125,10 @@ class MyWidget(QWidget):
         minimum_text = self.minimum_edit.text()
         subsidy_text = self.subsidy_edit.text()
         custom_text = self.custom_edit.text()
-        current_text = self.current_value_label.text()
+        #current_text = self.current_value_label.text()
 
         # 检查输入框中的值是否为空
-        if not price_text or not cost_text or not minimum_text or not subsidy_text or not custom_text or not current_text:
+        if not price_text or not cost_text or not minimum_text or not subsidy_text or not custom_text :
             QMessageBox.warning(self, '警告', '请确保所有输入框都已填写！')
             self.current_slider.setValue(0)
             return
@@ -139,7 +139,8 @@ class MyWidget(QWidget):
         minimum = float(minimum_text)
         subsidy = float(subsidy_text)
         custom = float(custom_text)
-        current = float(current_text)
+        #current = float(current_text)
+        current = float(self.current_slider.value())
 
         result = 0
         #result公式,这里如果很多条件可以用match..case方法来写
@@ -159,13 +160,10 @@ class MyWidget(QWidget):
         
         if result > 0:
             color = 'red'
-            print(result)
         elif result < 0:
             color = 'green'
-            print(result)
         else:
             color = 'black'
-            print(result)
         palette.setColor(QPalette.ColorRole.WindowText, QColor(color))
         self.result_label.setPalette(palette)
         self.result_label.setText(f'结果：{result:.2f}元')
