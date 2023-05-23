@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QSlider, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QSlider, QMessageBox, QPushButton
 from PyQt6.QtGui import QIcon, QColor, QPalette, QRegularExpressionValidator, QFont
 from PyQt6.QtCore import Qt, QRegularExpression
 
@@ -48,15 +48,10 @@ class MyWidget(QWidget):
         self.result_label = QLabel('0')
         self.result_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # 添加“公式”标签  
-        self.formula_label = QLabel('-------------------')
-        self.formula_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 添加帮助按钮
+        self.help_button = QPushButton('帮助')
+        self.help_button.clicked.connect(self.show_help)
 
-        #这里公式可以调整成可选项，QComboBox(),让QComBox的值传到下面的result中，不同的公式出不同的result
-        #self.combo_box = QComboBox()
-        #self.combo_box.addItem("公式1")
-        #self.combo_box.addItem("公式2")
-        
         # 设置字体和字号
         font = QFont()
         font.setPointSize(15)
@@ -70,12 +65,28 @@ class MyWidget(QWidget):
         self.subsidy_edit.setFont(font)
         self.custom_label.setFont(font)
         self.custom_edit.setFont(font)
-        self.formula_label.setFont(font)
         self.current_label.setFont(font)
         self.current_value_label.setFont(font)
         self.result_label.setFont(font)
         self.result_label.setFont(font)
         self.result_label.setStyleSheet("font-weight: bold;")
+
+        #美化按钮
+        # 设置按钮的样式表
+        button_style = """
+            QPushButton {
+                background-color: #9e9e9e;
+                color: white;
+                border-radius: 5px;
+                border: none;
+                padding: 10px;
+            }
+
+            QPushButton:hover {
+                background-color: #bdbdbd;
+            }
+        """
+        self.help_button.setStyleSheet(button_style)
 
         #美化进度条，groove是进度条参数，handle是滑块的参数
         slider_style = """
@@ -107,8 +118,8 @@ class MyWidget(QWidget):
         vbox.addWidget(self.subsidy_edit)
         vbox.addWidget(self.custom_label)
         vbox.addWidget(self.custom_edit)
-        vbox.addWidget(self.formula_label)
-
+         # 添加帮助按钮到vbox
+        vbox.addWidget(self.help_button)
         current_hbox = QHBoxLayout()
         current_hbox.addWidget(self.current_label)
         current_hbox.addWidget(self.current_value_label)
@@ -116,6 +127,8 @@ class MyWidget(QWidget):
 
         vbox.addWidget(self.current_slider)
         vbox.addWidget(self.result_label)
+
+       
 
 
         self.setLayout(vbox)
@@ -133,7 +146,7 @@ class MyWidget(QWidget):
         # 检查输入框中的值是否为空
         if not price_text or not cost_text or not minimum_text or not subsidy_text or not custom_text :
             QMessageBox.warning(self, '警告', '请确保所有输入框都已填写！')
-            self.current_slider.setValue(0)
+            #self.current_slider.setValue(0)
             return
 
         # 将输入框中的值转换为浮点数
@@ -171,6 +184,13 @@ class MyWidget(QWidget):
         self.result_label.setPalette(palette)
         self.result_label.setText(f'结果：{result:.2f}元')
 
+    # 添加帮助按钮的槽函数
+    def show_help(self):
+        QMessageBox.information(self, '帮助', '请在输入框中填写对应的数值，然后拖动滑块来调整当前实际流量(G)的值。 \n\n计算结果将显示在屏幕下方。\
+                                公式如下：\n①当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 当前实际流量 -  成本价 * (当前实际流量 - 补贴流量)\
+                                ②当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 当前实际流量 - 成本价 * 保底流量\
+                                ③当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * (当前实际流量 - 补贴流量)\
+                                ④ 当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * 保底流量')
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MyWidget()
