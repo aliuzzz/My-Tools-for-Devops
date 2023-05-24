@@ -71,8 +71,21 @@ class MyWidget(QWidget):
         self.result_label.setFont(font)
         self.result_label.setStyleSheet("font-weight: bold;")
 
-        #美化按钮
-        # 设置按钮的样式表
+        #美化编辑框
+        lineedit_style = """
+            QLineEdit {
+                border: 1px solid gray; 
+                border-radius: 5px; 
+                padding: 3px
+            }
+        """
+        self.price_edit.setStyleSheet(lineedit_style)
+        self.cost_edit.setStyleSheet(lineedit_style)
+        self.subsidy_edit.setStyleSheet(lineedit_style)
+        self.minimum_edit.setStyleSheet(lineedit_style)
+        self.custom_edit.setStyleSheet(lineedit_style)
+
+        #美化按钮  设置按钮的样式表
         button_style = """
             QPushButton {
                 background-color: #9e9e9e;
