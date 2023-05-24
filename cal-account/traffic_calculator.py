@@ -131,7 +131,7 @@ class MyWidget(QWidget):
         vbox.addWidget(self.subsidy_edit)
         vbox.addWidget(self.custom_label)
         vbox.addWidget(self.custom_edit)
-         # 添加帮助按钮到vbox
+        # 添加帮助按钮到vbox
         vbox.addWidget(self.help_button)
         current_hbox = QHBoxLayout()
         current_hbox.addWidget(self.current_label)
@@ -140,9 +140,6 @@ class MyWidget(QWidget):
 
         vbox.addWidget(self.current_slider)
         vbox.addWidget(self.result_label)
-
-       
-
 
         self.setLayout(vbox)
         self.setWindowTitle('流量计算器')
@@ -154,7 +151,6 @@ class MyWidget(QWidget):
         minimum_text = self.minimum_edit.text()
         subsidy_text = self.subsidy_edit.text()
         custom_text = self.custom_edit.text()
-        #current_text = self.current_value_label.text()
 
         # 检查输入框中的值是否为空
         if not price_text or not cost_text or not minimum_text or not subsidy_text or not custom_text :
@@ -168,7 +164,6 @@ class MyWidget(QWidget):
         minimum = float(minimum_text)
         subsidy = float(subsidy_text)
         custom = float(custom_text)
-        #current = float(current_text)
         current = float(self.current_slider.value())
 
         result = 0
@@ -199,11 +194,11 @@ class MyWidget(QWidget):
 
     # 添加帮助按钮的槽函数
     def show_help(self):
-        QMessageBox.information(self, '帮助', '请在输入框中填写对应的数值，然后拖动滑块来调整当前实际流量(G)的值。 \n\n计算结果将显示在屏幕下方。\
-                                公式如下：\n①当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 当前实际流量 -  成本价 * (当前实际流量 - 补贴流量)\
-                                ②当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 当前实际流量 - 成本价 * 保底流量\
-                                ③当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * (当前实际流量 - 补贴流量)\
-                                ④ 当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * 保底流量')
+        QMessageBox.information(self, '帮助', '请在输入框中填写对应的数值，然后拖动滑块来调整当前实际流量(G)的值\n计算结果将显示在屏幕下方,公式如下：\
+                                \n\n①当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 当前实际流量 -  成本价 * (当前实际流量 - 补贴流量)\
+                                \n\n②当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 当前实际流量 - 成本价 * 保底流量\
+                                \n\n③当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * (当前实际流量 - 补贴流量)\
+                                \n\n④当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * 保底流量')
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MyWidget()
