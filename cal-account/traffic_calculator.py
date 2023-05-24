@@ -67,6 +67,7 @@ class MyWidget(QWidget):
         self.custom_edit.setFont(font)
         self.current_label.setFont(font)
         self.current_value_label.setFont(font)
+        self.help_button.setFont(font)
         self.result_label.setFont(font)
         self.result_label.setFont(font)
         self.result_label.setStyleSheet("font-weight: bold;")
@@ -194,11 +195,31 @@ class MyWidget(QWidget):
 
     # 添加帮助按钮的槽函数
     def show_help(self):
-        QMessageBox.information(self, '帮助', '请在输入框中填写对应的数值，然后拖动滑块来调整当前实际流量(G)的值\n计算结果将显示在屏幕下方,公式如下：\
-                                \n\n①当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 当前实际流量 -  成本价 * (当前实际流量 - 补贴流量)\
-                                \n\n②当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 当前实际流量 - 成本价 * 保底流量\
-                                \n\n③当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * (当前实际流量 - 补贴流量)\
-                                \n\n④当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * 保底流量')
+        message_box = QMessageBox()
+        message_box.setWindowTitle("帮助")
+        message_box.setFont(QFont("Arial", 13))
+        message_box.setText("请在输入框中填写对应的数值，然后拖动滑块来调整当前实际流量(G)的值\n计算结果将显示在屏幕下方,公式如下：\
+                            \n\n①当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 当前实际流量 -  成本价 * (当前实际流量 - 补贴流量)\
+                            \n\n②当前实际流量 >= 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 当前实际流量 - 成本价 * 保底流量\
+                            \n\n③当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) >= 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * (当前实际流量 - 补贴流量)\
+                            \n\n④当前实际流量 < 客户侧保底流量 并且 (当前实际流量 - 补贴流量) < 保底流量：结果 = 出售单价 * 客户侧保底流量 - 成本价 * 保底流量')")
+        close_button = message_box.addButton("我知道了", QMessageBox.ButtonRole.AcceptRole)
+        close_button_font = QFont()
+        close_button_font.setPointSize(16)  # 设置字体大小为16
+        close_button.setFont(close_button_font)  # 设置字体
+        close_button.setStyleSheet("QPushButton {"
+                                    "background-color: #9e9e9e;"
+                                    "color: white;"
+                                    "border: none;"
+                                    "padding: 10px;"
+                                    "border-radius: 5px;"
+                                    "}"
+                                    "QPushButton:hover {"
+                                    "background-color: #bdbdbd;"
+                                    "}")
+        close_button.clicked.connect(message_box.close)
+        message_box.exec()
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MyWidget()
