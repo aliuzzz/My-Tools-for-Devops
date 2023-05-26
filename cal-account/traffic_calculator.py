@@ -77,7 +77,7 @@ class MyWidget(QWidget):
             QLineEdit {
                 border: 1px solid gray; 
                 border-radius: 5px; 
-                padding: 3px
+                padding: 1px
             }
         """
         self.price_edit.setStyleSheet(lineedit_style)
@@ -93,7 +93,7 @@ class MyWidget(QWidget):
                 color: white;
                 border-radius: 5px;
                 border: none;
-                padding: 10px;
+                padding: 3px;
             }
 
             QPushButton:hover {
@@ -132,7 +132,6 @@ class MyWidget(QWidget):
         vbox.addWidget(self.subsidy_edit)
         vbox.addWidget(self.custom_label)
         vbox.addWidget(self.custom_edit)
-        # 添加帮助按钮到vbox
         vbox.addWidget(self.help_button)
         current_hbox = QHBoxLayout()
         current_hbox.addWidget(self.current_label)
@@ -211,7 +210,7 @@ class MyWidget(QWidget):
                                     "background-color: #9e9e9e;"
                                     "color: white;"
                                     "border: none;"
-                                    "padding: 10px;"
+                                    "padding: 3px;"
                                     "border-radius: 5px;"
                                     "}"
                                     "QPushButton:hover {"
