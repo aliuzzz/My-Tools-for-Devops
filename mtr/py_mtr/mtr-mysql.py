@@ -9,9 +9,9 @@ import subprocess
 TIME_INTERVAL = 60
 
 def run(ip,year,month,year1,month1,day,region,company,hours,discriptions):
-   result = subprocess.call('echo "------------------------------------------------------------------------------" \
-   >>/data/mtr/%s年%s月/%s年%s月%s日/%s/%s/%s-%s.txt && /usr/sbin/mtr -r -i 0.5 -c 60 -n %s >> /data/mtr/%s年%s月/%s年%s月%s日/%s/%s/%s-%s.txt' \
-   %(year,month,year1,month1,day,region,company,hours,discriptions,ip,year,month,year1,month1,day,region,company,hours,discriptions), shell=True)
+    result = subprocess.call('echo "------------------------------------------------------------------------------" \
+    >>/data/mtr/%s年%s月/%s年%s月%s日/%s/%s/%s-%s.txt && /usr/sbin/mtr -r -i 0.5 -c 60 -n %s >> /data/mtr/%s年%s月/%s年%s月%s日/%s/%s/%s-%s.txt' \
+    %(year,month,year1,month1,day,region,company,hours,discriptions,ip,year,month,year1,month1,day,region,company,hours,discriptions), shell=True)
 
 #启动线程
 def my_job():
