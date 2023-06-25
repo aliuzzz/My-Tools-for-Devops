@@ -27,7 +27,7 @@ def process_file(file_path, root):
                     print(percentage)
                     if float(percentage) > 0:
                         #输出到 xunjian.txt
-                        with open(os.path.join(root, "xunjian.txt"), "w+") as xunjian_file:
+                        with open(os.path.join(root, "###############巡检****mtr****巡检###############.txt"), "w+") as xunjian_file:
                             xunjian_file.write(lines[i-1])
                             xunjian_file.write(lines[i])
                             xunjian_file.write(lines[i-2])
@@ -36,7 +36,7 @@ def process_file(file_path, root):
                     continue
 
 def process_company(region, company):
-    for root, dirs, files in os.walk(f"/tttt/mtr/{month_str}/{date_str}/{region}/{company}/"):
+    for root, dirs, files in os.walk(f"/data/mtr/{month_str}/{date_str}/{region}/{company}/"):
         for file in files:
             file_path = os.path.join(root, file)  #所有txt文件的路径
             process_file(file_path, root)
