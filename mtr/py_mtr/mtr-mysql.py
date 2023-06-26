@@ -22,11 +22,11 @@ def my_job():
     day = str(time.strftime("%d",time.localtime(time.time())))
     hours = str(time.strftime('%H',time.localtime(time.time())))
     # 建立数据库连接
-    conn = pymysql.connect(host='ip',port='端口号",user='用户名',password='密码',db='数据库名')
+    conn = pymysql.connect(host='ip',port='端口号',user='用户名',password='密码',db='数据库名')
     #获取游标
     cursor = conn.cursor()
-    sql_count = "SELECT COUNT(*) FROM mtrtest" # 取表格总行数
-    sql_mtr_info = "SELECT ip, region, room, description FROM mtrtest" #取表格信息
+    sql_count = "SELECT COUNT(*) FROM mtr_company" # 取表格总行数
+    sql_mtr_info = "SELECT ip, region, room, description FROM mtr_company" #取表格信息
     cursor.execute(sql_count)
     count = cursor.fetchone()[0] #总行数
     mtr_interval = TIME_INTERVAL / count  #间隔
