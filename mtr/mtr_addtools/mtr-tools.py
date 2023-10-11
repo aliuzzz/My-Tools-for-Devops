@@ -20,7 +20,6 @@ class Main(QWidget):
         password = config['database']['password']  
         db = config['database']['db']
         # 连接数据库
-        #self.conn = pymysql.connect(host="27.221.49.44", port=3306, user="root", password="QingDaoWx789", database="mtr")
         self.conn = pymysql.connect(host=host, port=3306, user=user, password=password, database=db, connect_timeout=300)
         self.cursor = self.conn.cursor()
         
