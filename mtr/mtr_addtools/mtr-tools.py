@@ -157,7 +157,6 @@ class Main(QWidget):
         operator = self.operator_edit.currentText()
         
         # 检查输入的信息
-       
         if not region:
             QMessageBox.warning(self, '警告', '地区不能为空')
             return
