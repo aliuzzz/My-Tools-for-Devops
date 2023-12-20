@@ -38,7 +38,7 @@ for i in range(len(df)):
 groups = df.groupby('company')['description'].apply(list) # 建一个group方便后面往docx里写的时候分组
 
 # 创建一个log文件记录脚本运行情况
-logging.basicConfig(filename='/monthly/monthly_get.log',level=logging.DEBUG,format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+logging.basicConfig(filename='/monthly/monthly_get.log',level=logging.DEBUG,format='%(asctfime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 #----------------处理“443值”跟月份日期的问题------------------------------
 # 当天所在的年份
