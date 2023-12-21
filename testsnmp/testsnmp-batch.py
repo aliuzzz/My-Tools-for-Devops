@@ -1,6 +1,7 @@
 #准备一个ip.txt表，用于批量测试。会将snmp通的输出到snmp_enabled.txt,不通的输出到snmp_disabled.txt
 import subprocess
 import os
+import time
 
 def snmp_check(ip_address, community_string):
   # Construct the SNMP walk command.
@@ -32,8 +33,11 @@ if __name__ == "__main__":
 
   # Open two files for writing: one for SNMP enabled devices and one for SNMP disabled devices.
   with open('snmp_enabled.txt', 'w') as f_enabled, open('snmp_disabled.txt', 'w') as f_disabled:
+    # Start a timer to track the progress of the script.
+    start_time = time.time()
+
     # Check SNMP for each IP address.
-    for ip_address in ip_addresses:
+    for index, ip_address in enumerate(ip_addresses):
       # Remove any whitespace from the IP address.
       ip_address = ip_address.strip()
 
@@ -46,7 +50,12 @@ if __name__ == "__main__":
       else:
         f_disabled.write(f"{ip_address}\n")
 
+      # Print the progress of the script.
+      elapsed_time = time.time() - start_time
+      print(f"Progress: {index + 1} / {len(ip_addresses)} ({elapsed_time:.2f} seconds)")
+
   # Print a message to the user.
   print("SNMP enabled devices have been written to snmp_enabled.txt.")
   print("SNMP disabled devices have been written to snmp_disabled.txt.")
+
 
