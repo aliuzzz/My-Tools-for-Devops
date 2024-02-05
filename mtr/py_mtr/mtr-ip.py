@@ -1,10 +1,5 @@
-import pymysql
+import pymysql,os,time,threading,subprocess
 from dbutils.pooled_db import PooledDB
-import os
-import time
-import threading
-import subprocess
-
 from datetime import datetime
 TIME_INTERVAL = 60
 
@@ -19,10 +14,10 @@ POOL = PooledDB(
     maxusage=None,  # 一个连接最多被重复使用的次数，None表示无限制
     setsession=[],  # 开始会话前执行的命令列表
     ping=0,
-    host='27.221.49.44',
+    host='ip',
     port=3306,
-    user='root',
-    password='QingDaoWx789',
+    user='xxxx',
+    password='xxxxxx',
     database='mtr',
     charset='utf8'
 )
@@ -32,9 +27,10 @@ year = now.year
 month = now.month 
 day = now.day
 hour = now.hour
-def run(ip,year,month,year1,month1,day,region,company,hours,discriptions):
+
+def run(ip,date,region,company,discriptions):
     try:
-        file_path = f"/data/mtr/{year}年{month}月/{year}年{month}月{day}日/{region}/{company}/{hours}-{discriptions}.txt"
+        file_path = f"/data/mtr/{date.year}年{date.month}月/{year}年{date.month}月{date.day}日/{region}/{company}/{date.hour}-{discriptions}.txt"
         cmd = f'echo "------------------------------------------------------------------------------" >> {file_path}' \
             f' && /usr/sbin/mtr -r -i 0.5 -c 60 -n {ip} >> {file_path}'
         result = subprocess.call(cmd, shell=True)
@@ -42,13 +38,9 @@ def run(ip,year,month,year1,month1,day,region,company,hours,discriptions):
         print(f"Error running subprocess: {e}")
 
 def my_job():
-    year = str(time.strftime('%Y',time.localtime(time.time())))
-    month = str(time.strftime('%m',time.localtime(time.time())))
-    day = str(time.strftime("%d",time.localtime(time.time())))
-    hours = str(time.strftime('%H',time.localtime(time.time())))
-
-    # 从连接池获取连接
-    conn = POOL.connection()
+    date = datetime.now()
+    # 从连接池获取连接 
+    conn = POOL.connection()        
     cursor = conn.cursor()
 
     try:
@@ -65,10 +57,10 @@ def my_job():
             region = row[1]
             room = row[2]
             description = row[3]
-            path = f"/data/mtr/{year}年{month}月/{year}年{month}月{day}日/{region}/{room}/"
+            path = f"/data/mtr/{date.year}年{date.month}月/{date.year}年{date.month}月{date.day}日/{region}/{room}/"
             if not os.path.exists(path):
                 os.makedirs(path)
-            threading.Thread(target=run, args=(ip,year,month,year,month,day,region,room,hours,description)).start()
+            threading.Thread(target=run, args=(ip,date,region,room,description)).start()
             time.sleep(mtr_interval)
     except pymysql.MySQLError as e:
         print(f"Database error: {e}")
