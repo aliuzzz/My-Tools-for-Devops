@@ -1,0 +1,8 @@
+alibabacloud_tea_openapi
+alibabacloud_docmind_api20220729==1.1.0
+alibabacloud_credentials
+alibabacloud_tea_console
+alibabacloud_darabonba_env
+alibabacloud_dyvmsapi20170525
+alibabacloud_tea_util
+alibabacloud_darabonba_number
