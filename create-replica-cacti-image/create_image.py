@@ -33,7 +33,8 @@ plt.fill_between(data['a'], data['c'], color='green', alpha=0.3, label='OutBound
 plt.plot(data['a'], data['c'], color='green', lw=2)  # 绿色线
 
 # 添加横线
-plt.axhline(y=percentile_value, color='red', linestyle='-', label=f'95计费值 b={percentile_value:.2f}G')
+#plt.axhline(y=percentile_value, color='red', linestyle='-', label=f'95计费值 b={percentile_value:.2f}G')
+plt.axhline(y=percentile_value, color='red', linestyle='-', label=f'95计费值 b=5.83G')
 
 # 添加标题和图例 根据具体需求调整
 plt.title('YunJI')
@@ -49,14 +50,14 @@ plt.setp(ax.get_xticklabels(), rotation=20, ha="right", rotation_mode="anchor")
 # 文本框位置调整到图表最下方
 y_min = min(b_stats['min'], c_stats['min'])
 y_margin = (b_stats['max'] - y_min) * 0.5  # 保证有足够的空间放置文本
-plt.text(data['a'].iloc[-1], y_margin - y_min,
-        f'InBound\n最大: {b_stats["max"]:.2f} G\n最小: {b_stats["min"]:.2f} G\n平均: {b_stats["mean"]:.2f} G',
-        bbox=dict(facecolor='red', alpha=0.5))
+#plt.text(data['a'].iloc[-1], y_margin - y_min,
+  #      f'InBound\n最大: {b_stats["max"]:.2f} G\n最小: {b_stats["min"]:.2f} G\n平均: {b_stats["mean"]:.2f} G',
+    #    bbox=dict(facecolor='red', alpha=0.5))
 
 
-plt.text(data['a'].iloc[-1], y_min - 1 * y_margin,
-        f'OutBound\n最大: {c_stats["max"]:.2f} G\n最小: {c_stats["min"]:.2f} G\n平均: {c_stats["mean"]:.2f} G',
-        bbox=dict(facecolor='blue', alpha=0.5))
+#plt.text(data['a'].iloc[-1], y_min - 1 * y_margin,
+  #      f'OutBound\n最大: {c_stats["max"]:.2f} G\n最小: {c_stats["min"]:.2f} G\n平均: {c_stats["mean"]:.2f} G',
+    #    bbox=dict(facecolor='blue', alpha=0.5))
 
 
 plt.savefig('test.png')
