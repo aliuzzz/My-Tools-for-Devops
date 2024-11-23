@@ -1,17 +1,12 @@
-#!/bin/bash
-# 备份原配置文件
-echo "正在备份原配置文件..."
-bak = ls -1 /etc/netplan/ | head -n 1
-
-mv /etc/netplan/$bak /etc/netplan/$bak.bak
-
+#!/bin/bash  
 # 首先确认网络是否联通
 ping -c 2 ispip.clang.cn
+# 如果不通通则退出
 if [ $? -ne 0 ]; then
-    echo "网络不通，请检查网络连接或URL是否正确。"
-    exit 1
+  echo "网络不通，请检查网络连接或URL是否正确。"
+  exit 1
 fi
-echo "网络通畅，开始配置网络"
+echo "网络通畅，下面开始刷路由表"
 sleep 1
 
 echo "请输入要配置的IP地址数量:"
@@ -87,48 +82,24 @@ for ((i=1; i<=$ip_count; i++)); do
             ;;
     esac
 done
-
-# 生成yaml文件的开始部分
-cat > /etc/netplan/00-installer-config.yaml << EOF
-network:
-    version: 2
-    renderer: networkd
-    ethernets:
-        $interface_name:
-            dhcp4: no
-            dhcp6: no
-            addresses: 
-EOF
-
 # 添加IP地址
 for ip in "${ip_addresses[@]}"; do
-    echo "            - $ip" >> /etc/netplan/00-installer-config.yaml
+    nmcli con modify "$interface_name" +ipv4.addresses "$ip"
 done
+nmcli con reload "$interface_name"
+nmcli con up "$interface_name"
 
-# 添加nameservers
-cat >> /etc/netplan/00-installer-config.yaml << EOF
-            nameservers:
-                addresses: [223.5.5.5]
-            routes:
-EOF
-
-# 添加默认路由（使用第一个网关）
-echo "            - to: default" >> /etc/netplan/00-installer-config.yaml
-echo "              via: ${gateways[0]}" >> /etc/netplan/00-installer-config.yaml
-echo "              on-link: true" >> /etc/netplan/00-installer-config.yaml
-
-# 添加运营商路由表
+#添加运营商路由表
 for ((i=1; i<=$ip_count; i++)); do
     if [ -f "TEMP_FILE_$i" ]; then
         while IFS= read -r line; do
             if [ ! -z "$line" ]; then  # 确保行不为空
                 ip=$(echo "$line" | sed 's/\ //g')
-                echo "            - to: $ip" >> /etc/netplan/00-installer-config.yaml
-                echo "              via: ${gateways[$i-1]}" >> /etc/netplan/00-installer-config.yaml
+                echo "$ip via ${gateways[$i-1]}" >> /etc/sysconfig/network-scripts/route-$interface_name
             fi
         done < "TEMP_FILE_$i"
-        rm "TEMP_FILE_$i"
+        rm -f "TEMP_FILE_$i"
     fi
 done
-
-echo "配置文件已生成为 /etc/netplan/00-installer-config.yaml"
+nmcli con reload
+systemctl restart NetworkManager
