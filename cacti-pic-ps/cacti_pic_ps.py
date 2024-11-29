@@ -122,6 +122,7 @@ class ImageValidator(QMainWindow):
         canvas = Image.new('RGB', (100,17), '#F3F3F3')
         draw = ImageDraw.Draw(canvas)#创建画笔
         font = ImageFont.truetype("D://0Work//Code//My-Tools-for-Devops//cacti-pic-ps//wqy-zenhei.ttc", 15)  #设置字体
+        font = ImageFont.truetype("./wqy-zenhei.ttc", 15)  #设置字体
         draw.text((2,0), number, font=font, fill='black')  #绘制数字 x,y,左上角是0，0
         image_b = Image.open(image_path) #打开图片b
         image_a_width, image_a_height = canvas.size   #获取图片a的尺寸
