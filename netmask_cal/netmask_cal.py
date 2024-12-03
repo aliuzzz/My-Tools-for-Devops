@@ -1,7 +1,8 @@
 import sys
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QDialog, QTextEdit, QRadioButton, QHBoxLayout
 from ipaddress import IPv4Network, IPv6Network, AddressValueError
-from PyQt6.QtCore import Qt
 
 class SubnetCalculator(QWidget):
     def __init__(self):
@@ -11,6 +12,7 @@ class SubnetCalculator(QWidget):
 
     def initUI(self):
         self.setWindowTitle('子网掩码计算器-支持ipv4和ipv6')
+        self.setWindowIcon(QIcon('./ip.png'))
         self.setGeometry(100, 100, 400, 200)
 
         layout = QVBoxLayout()
