@@ -226,17 +226,17 @@ class NetworkTool(QWidget):
 
             current_port = None
             for line in lines:
-                if "GE" in line:
+                if "GE" in line or "XG" in line:
                     transceiver_index = line.find("transceiver")
                     if transceiver_index != -1:
                         current_port = line[:transceiver_index].strip()
                         port_info[current_port] = {}
                 elif current_port:
-                    if "Transceiver Type" in line:
+                    if "Transceiver" in line:
                         port_info[current_port]['Transceiver Type'] = line.split(":")[1].strip()
                     elif "Connector Type" in line:
                         port_info[current_port]['Connector Type'] = line.split(":")[1].strip()
-                    elif "Wavelength (nm)" in line:
+                    elif "Wavelength" in line:
                         port_info[current_port]['Wavelength (nm)'] = line.split(":")[1].strip()
                     elif "Vendor Name" in line:
                         port_info[current_port]['Vendor Name'] = line.split(":")[1].strip()
