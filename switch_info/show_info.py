@@ -36,7 +36,7 @@ class NetworkTool(QWidget):
 
     def initUI(self):
         self.setWindowTitle('交换机统计信息')
-        self.setWindowIcon(QIcon('switch_info\Vswitch.png'))
+        self.setWindowIcon(QIcon('.\Vswitch.ico'))
         self.setGeometry(100, 100, 500, 600)
 
         layout = QVBoxLayout()
@@ -51,12 +51,31 @@ class NetworkTool(QWidget):
         self.password_input = QLineEdit()
         self.password_input.setStyleSheet("border: 1px solid #ccc; border-radius: 5px; padding: 5px;")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.command_label = QLabel('请输入需要键入的命令:')
+        self.command_input = QLineEdit()
+        self.command_input.setStyleSheet("border: 1px solid #ccc; border-radius: 5px; padding: 5px;")
 
-        self.button1 = QPushButton('进入sys模式')
+        self.button0 = QPushButton('执行命令')
+        self.button1 = QPushButton('进入交换机')
         self.button2 = QPushButton('查看模块信息(dis int transceiver verbose)')
         self.button3 = QPushButton('分析模块信息')
         self.button4 = QPushButton('清空输出')
         
+        self.button0.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(192, 192, 192,125);
+                border:1px outset rgb(255, 255, 255);
+                font: bold;
+                font-size: 15px;
+                color: #000;
+                min-width:20px;
+                padding: 5px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #696969;
+            }
+        """)
         self.button1.setStyleSheet("""
             QPushButton {
                 background-color: rgba(192, 192, 192,125);
@@ -128,6 +147,9 @@ class NetworkTool(QWidget):
         layout.addWidget(self.username_input)
         layout.addWidget(self.password_label)
         layout.addWidget(self.password_input)
+        layout.addWidget(self.command_label)
+        layout.addWidget(self.command_input)
+        layout.addWidget(self.button0)
         layout.addWidget(self.button1)
         layout.addWidget(self.button2)
         layout.addWidget(self.button3)
@@ -136,16 +158,27 @@ class NetworkTool(QWidget):
 
         self.setLayout(layout)
 
+        self.button0.clicked.connect(self.run_custom_command)
         self.button1.clicked.connect(self.enter_sys_mode)
         self.button2.clicked.connect(self.run_command)
         self.button3.clicked.connect(self.analyze_output)
         self.button4.clicked.connect(self.clear_output)
 
+    def run_custom_command(self):
+        command = self.command_input.text()
+        
+        if command and not (command.startswith('dis') or command.startswith('display')):
+            QMessageBox.warning(self, "输入提示", "命令必须以 'dis'或'display' 开头")
+            return
+        ip = self.ip_input.text()
+        username = self.username_input.text()
+        password = self.password_input.text()
+        self.start_ssh_thread(ip, username, password, command)
     def enter_sys_mode(self):
         ip = self.ip_input.text()
         username = self.username_input.text()
         password = self.password_input.text()
-        command = 'sys'  # 假设这是进入SYS模式的命令
+        command = 'dis this'  # 假设这是进入SYS模式的命令
         self.start_ssh_thread(ip, username, password, command)
 
     def run_command(self):
@@ -170,6 +203,12 @@ class NetworkTool(QWidget):
             ip = self.ip_input.text()
             filename = f"{ip}.txt"
             filepath = Path('output') / filename
+            current_dir = Path(__file__).parent
+            output_dir = current_dir / "output"
+            # 确保output文件夹存在
+            output_dir.mkdir(exist_ok=True)
+            filepath = output_dir / filename
+            #print(filepath)
             with open(filepath, 'w') as file:
                 file.write(output)
 
@@ -178,7 +217,9 @@ class NetworkTool(QWidget):
         ip = self.ip_input.text()
         filename = f"{ip}.txt"
         outputcsv = f"{ip}.csv"
-        filepath = Path('output') / filename
+        current_dir = Path(__file__).parent
+        output_dir = current_dir / "output"
+        filepath = output_dir / filename
         try:
             with open(filepath, 'r') as file:
                 lines = file.readlines()
@@ -208,7 +249,7 @@ class NetworkTool(QWidget):
             
             
             # 写入CSV文件
-            csvpath = Path('output') / outputcsv
+            csvpath = output_dir / outputcsv
             with open(csvpath, 'w', newline='') as csvfile:
                 csvwriter = csv.writer(csvfile)
                 csvwriter.writerow(["Port Name", "Transceiver Type", "Connector Type", "Wavelength (nm)", "Vendor Name", "Vendor Part Number", "Serial Number", "Manufacturing Date"])  # 写入表头
