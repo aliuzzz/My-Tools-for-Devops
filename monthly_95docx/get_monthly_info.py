@@ -1,5 +1,5 @@
 #####
-#基于cacti0.8.8版本
+#基于cacti0.8.8版本，输入用户名密码，以及csv信息，可以批量下载并且将95值和流量图拼接并生成月度对账文档
 import requests,zipfile,logging,datetime, time, calendar,os, shutil
 import concurrent.futures
 import imgkit  #处理html转图
