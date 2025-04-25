@@ -228,24 +228,24 @@ def csv_deal():
 
         # 生成表格并设置样式
         table = ax.table(
-            cellText=df_in.values,
-            colLabels=df_in.columns,
+            cellText=df_out.values,
+            colLabels=df_out.columns,
             cellLoc='center',
             loc='center',
-            colColours=['#f0f0f0'] * len(df_in.columns)  # 可选：列标题背景色
+            colColours=['#f0f0f0'] * len(df_out.columns)  # 可选：列标题背景色
         )
         table.auto_set_font_size(False)
         table.set_fontsize(15)  # 调整字体大小
         table.scale(1, 3)     # 调整单元格宽高 (宽度, 高度)
         cells = table.get_celld()
-        for i in range(len(df_in.columns)):
+        for i in range(len(df_out.columns)):
             if i == 0:
                 width = 0.3  # 第一列宽度
             else:
                 width = 0.6  # 第二列宽度
 
             cells[(0, i)].set_width(width)  # 设置列标题宽度
-            for j in range(len(df_in)):
+            for j in range(len(df_out)):
                 cells[(j + 1, i)].set_width(width)
                 if j == 1:  # 修改这个数字来选择要着色的行
                     cells[(j + 1, i)].set_facecolor('#fffa00')

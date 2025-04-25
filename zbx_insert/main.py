@@ -1,12 +1,12 @@
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
-from qfluentwidgets import RoundMenu
+from qfluentwidgets import RoundMenu,MessageBox
 from Ui_zbx_insert import Ui_Form
 import sys, json, requests, configparser
 
 config = configparser.ConfigParser()
-config.read('zbx_insert.conf')
+config.read('D://0Work//Code//My-Tools-for-Devops//zbx_insert//zbx_insert.conf')
 zbx_token = config['zbx_info']['zabbix_token']
 zbx_api = config['zbx_info']['zabbix_api']
 header = { "Content-Type": "application/json" }
@@ -95,14 +95,14 @@ def insert_items():
             "id": 1
         }
         res = requests.post(zbx_api, headers=header, data=json.dumps(host_data))
+        response_data = json.loads(res.text)
         try:
-            res = requests.post(zbx_api, headers=header, data=json.dumps(host_data))
-            print(res.text)
-            hosts = json.loads(res.text)["result"]
-            return hosts
+            if "error" in response_data:
+                showDialog(False)
+            else:
+                showDialog(True)
         except Exception as e:
-            print(f"Get host info error: {e}")
-            return []
+            print(f"Insert item error: {e}")
 
 #获取端口信息
 def Get_hosts_metric():
@@ -158,7 +158,9 @@ def update_port_info():
     try:
         port_info = Get_hosts_metric()
         if isinstance(port_info, list):
-            for port in port_info:
+            # 过滤出包含"Bits"的条目
+            filtered_ports = [port for port in port_info if 'Bits' in port['name']]
+            for port in filtered_ports:
                 ui.monitor_listWidget.addItem(f"{port['name']}-(ItemID: {port['itemid']})-(key:{port['key_']})")
     except Exception as e:
         ui.monitor_listWidget.addItem(str(e))
@@ -202,6 +204,21 @@ def delete_item(item):
     # 根据 item 找到所在行，然后删除该项
     row = ui.monitor_listWidget_in.row(item)
     ui.monitor_listWidget_in.takeItem(row)
+
+def showDialog(success=True):
+    if success:
+        title = '操作成功'
+        content = "监控项创建成功。"
+    else:
+        title = '操作失败'
+        content = "监控项创建失败，请检查各项问题。"
+    
+    w = MessageBox(title, content, Form)
+    w.setClosableOnMaskClicked(True)
+    if w.exec():
+        print('确认按钮已按下')
+    else:
+        print('取消按钮已按下')
 
 if __name__ == '__main__':  
     Get_hostgrp()

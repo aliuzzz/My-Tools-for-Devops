@@ -1,0 +1,9 @@
+50 11 * * * /usr/bin/python3 /root/xg_download/xg10h.py
+50 17 * * * /usr/bin/python3 /root/xg_download/xg20h.py
+#50 17 * * * /usr/bin/python3 /root/xg_download/xg30h.py
+00 12 * * * sh /root/xg_download/get_traffic.sh
+00 20 * * * sh /root/xg_download/get_traffic2.sh
+#00 22 * * * sh /root/xg_download/get_traffic3.sh
+0 23 * * * /sbin/reboot
+0 1 * * * /usr/bin/python3 /root/xg_download/change_ip.py
+5 1 * * * /usr/bin/python3 /root/xg_download/change_dns.py

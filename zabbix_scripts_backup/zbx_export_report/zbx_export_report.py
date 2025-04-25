@@ -56,19 +56,10 @@ def Export_port_report():
     except Exception:
         return "get host info error !"
 
-
-
 if __name__ == '__main__':
     mes = Export_port_report()
-    # 创建DataFrame
     df = pd.DataFrame(mes)
-
-    # 转换时间戳
     df['clock'] = pd.to_datetime(df['clock'].astype(int), unit='s')
-
-    # 选择需要的列并重命名
     df = df[['clock', 'value']]
     df.columns = ['时间', '值']
-
-    # 保存为CSV
     df.to_csv('output.csv', index=False)
