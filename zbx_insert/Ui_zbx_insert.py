@@ -64,11 +64,7 @@ class Ui_Form(object):
         self.hostid_label.setObjectName("hostid_label")
         self.hostid_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
         self.horizontalLayout_8.addWidget(self.hostid_label)        
-        # self.horizontalLayout_8.setStretch(0, 1)
-        # self.horizontalLayout_8.setStretch(1, 6)
-        # self.horizontalLayout_8.setStretch(2, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_8)
-        
         self.hostname_label = QtWidgets.QLabel(parent=Form)
         font = QtGui.QFont()
         font.setPointSize(12)
@@ -82,7 +78,6 @@ class Ui_Form(object):
         self.horizontalLayout_8.setStretch(2, 1)
         self.horizontalLayout_8.setStretch(3, 2)
         self.verticalLayout.addLayout(self.horizontalLayout_8)
-        
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
         self.monitor = QtWidgets.QLabel(parent=Form)
@@ -247,7 +242,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
+        Form.setWindowTitle(_translate("Form", "zabbix添加工具"))
         self.traffic.setText(_translate("Form", "交换机"))
         self.hostid_label.setText(_translate("Form", "HOSTID"))
         self.hostname_label.setText(_translate("Form", "主机名"))

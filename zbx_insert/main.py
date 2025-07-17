@@ -238,3 +238,7 @@ if __name__ == '__main__':
     ui.monitor_listWidget_in.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
     Form.show()
     sys.exit(app.exec())
+    
+    
+    
+    
