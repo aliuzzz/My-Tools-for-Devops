@@ -1,0 +1,3 @@
+site,name,status,location,facility_id,tenant,role,rack_type,form_factor,width,u_height,airflow
+延安电信机房,F04,active,低密1-2,dm-1-2-F04,网信,自用,图腾42U,4-post-cabinet,19,42,front-to-rear
+

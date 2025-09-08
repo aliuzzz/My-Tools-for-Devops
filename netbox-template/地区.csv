@@ -1,0 +1,15 @@
+name,slug,parent
+安徽,AH,
+辽宁,LN,
+山东,SD,
+天津,TJ,
+湖北,HB,
+重庆,CQ,
+陕西,SX,
+河北,HE,
+芜湖,wh,安徽
+马鞍山,mas,安徽
+延安,ya,陕西
+青岛,qd,山东
+襄阳,xy,湖北
+石家庄,sjz,河北
