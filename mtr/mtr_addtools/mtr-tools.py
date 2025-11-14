@@ -26,41 +26,46 @@ class DBHelper:
         )
         self.cursor = self.conn.cursor()
 
-    def get_distinct(self, field, table='mtr_company'):
+    def get_distinct(self, field, table='mtr_company_copy1'):
         self.cursor.execute(f"SELECT DISTINCT {field} FROM {table}")
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
-    def get_by_condition(self, field, cond_field, cond_value, table='mtr_company'):
+    def get_operators(self):
+        """从 operator 表获取所有运营商，返回 {id: name} 字典"""
+        self.cursor.execute("SELECT id, o_name FROM operator ORDER BY id")
+        return {row[0]: row[1] for row in self.cursor.fetchall()}
+
+    def get_by_condition(self, field, cond_field, cond_value, table='mtr_company_copy1'):
         sql = f"SELECT DISTINCT {field} FROM {table} WHERE {cond_field} = %s"
         self.cursor.execute(sql, (cond_value,))
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
     def get_ips(self, region, room, custom):
-        sql = """SELECT ip FROM mtr_company
+        sql = """SELECT ip FROM mtr_company_copy1
                  WHERE region=%s AND room=%s AND custom=%s"""
         self.cursor.execute(sql, (region, room, custom))
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
     def ip_exists(self, ip):
-        self.cursor.execute("SELECT COUNT(*) FROM mtr_company WHERE ip = %s", (ip,))
+        self.cursor.execute("SELECT COUNT(*) FROM mtr_company_copy1 WHERE ip = %s", (ip,))
         return self.cursor.fetchone()[0] > 0
 
     def region_exists(self, region_prefix):
-        sql = "SELECT region FROM mtr_company WHERE region LIKE %s GROUP BY region"
+        sql = "SELECT region FROM mtr_company_copy1 WHERE region LIKE %s GROUP BY region"
         self.cursor.execute(sql, (f"%{region_prefix}%",))
         return [row[0] for row in self.cursor.fetchall()]
 
-    def insert_record(self, ip, region, room, custom, operator, description):
+    def insert_record(self, ip, region, room, custom, operator_id, description):
         sql = """
-            INSERT INTO mtr_company (ip, region, room, custom, operator, description)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO mtr_company_copy1 (ip, region, room, custom, operator_id, description, d_time)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
-        self.cursor.execute(sql, (ip, region, room, custom, operator, description))
+        self.cursor.execute(sql, (ip, region, room, custom, operator_id, description))
         self.conn.commit()
 
     def delete_ip(self, ip):
         """删除指定 IP 的记录"""
-        sql = "DELETE FROM mtr_company WHERE ip = %s"
+        sql = "DELETE FROM mtr_company_copy1 WHERE ip = %s"
         self.cursor.execute(sql, (ip,))
         self.conn.commit()
 
@@ -71,6 +76,9 @@ class Main(QWidget):
 
         config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
         self.db = DBHelper(config_path)
+        
+        # 加载运营商数据 {id: name}
+        self.operators = self.db.get_operators()
 
         # 初始化界面
         self.initUI()
@@ -122,7 +130,7 @@ class Main(QWidget):
         self.custom_edit = QComboBox()
         self.custom_edit.setEditable(True)
         self.custom_edit.setStyleSheet(combo_style)
-        self.custom_edit.currentIndexChanged.connect(self.update_ip_list)  # 当客户变化时更新 IP 列表
+        self.custom_edit.currentIndexChanged.connect(self.update_ip_list)
 
         ip_label = QLabel('IP')
         self.ip_edit = QLineEdit()
@@ -135,15 +143,17 @@ class Main(QWidget):
 
         operator_label = QLabel('运营商')
         self.operator_edit = QComboBox()
-        self.operator_edit.setEditable(True)
-        self.operator_edit.addItems(self.db.get_distinct('operator'))
+        self.operator_edit.setEditable(False)
+        # 添加运营商选项，显示名称，存储 ID
+        for op_id, op_name in self.operators.items():
+            self.operator_edit.addItem(op_name, op_id)
         self.operator_edit.setStyleSheet(combo_style)
 
         submit_button = QPushButton('提交')
         submit_button.setStyleSheet(button_style)
         submit_button.clicked.connect(self.submit)
 
-        # 🌟 新增部分：显示 IP 列表 + 删除按钮
+        # IP 列表显示与删除功能
         ip_list_label = QLabel('该客户的 IP 列表')
         self.ip_list = QListWidget()
         self.delete_button = QPushButton('删除选中 IP')
@@ -165,7 +175,7 @@ class Main(QWidget):
         grid.addWidget(self.operator_edit, 4, 1)
         grid.addWidget(submit_button, 5, 1)
 
-        # 新区域（IP显示 & 删除）
+        # IP 列表区域
         grid.addWidget(ip_list_label, 6, 0)
         grid.addWidget(self.ip_list, 6, 1)
         grid.addWidget(self.delete_button, 7, 1)
@@ -218,7 +228,7 @@ class Main(QWidget):
             try:
                 self.db.delete_ip(ip)
                 QMessageBox.information(self, '提示', f'{ip} 删除成功')
-                self.update_ip_list()  # 刷新IP列表
+                self.update_ip_list()
             except Exception as e:
                 print(e)
                 QMessageBox.warning(self, '错误', f'删除失败：{e}')
@@ -228,7 +238,8 @@ class Main(QWidget):
         room = self.room_edit.currentText().strip()
         custom = self.custom_edit.currentText().strip()
         ip = self.ip_edit.text().strip()
-        operator = self.operator_edit.currentText().strip()
+        operator_id = self.operator_edit.currentData()  # 获取运营商 ID
+        operator_name = self.operator_edit.currentText()  # 获取运营商名称用于 description
 
         if not region:
             QMessageBox.warning(self, '警告', '地区不能为空')
@@ -242,7 +253,7 @@ class Main(QWidget):
         if not ip:
             QMessageBox.warning(self, '警告', 'IP不能为空')
             return
-        if not operator:
+        if operator_id is None:
             QMessageBox.warning(self, '警告', '运营商不能为空')
             return
 
@@ -264,11 +275,11 @@ class Main(QWidget):
             QMessageBox.warning(self, '警告', '该 IP 地址已存在')
             return
 
-        description = f"{room}-{custom}-{ip}-{operator}"
+        description = f"{room}-{custom}-{ip}-{operator_name}"
         try:
-            self.db.insert_record(ip, region, room, custom, operator, description)
+            self.db.insert_record(ip, region, room, custom, operator_id, description)
             QMessageBox.information(self, '提示', '更新成功')
-            self.update_ip_list()  # 插入后刷新列表
+            self.update_ip_list()
         except Exception as e:
             print(e)
             QMessageBox.warning(self, '警告', f'更新失败：{e}')
@@ -278,5 +289,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main = Main()
     main.show()
-    QMessageBox.information(main, '提示', '自用节点请选择地区 “自用地区”')
+    QMessageBox.information(main, '提示', '自用节点请选择地区 "自用地区"')
     sys.exit(app.exec())
