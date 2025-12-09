@@ -1,3 +1,5 @@
 site,name,status,location,facility_id,tenant,role,rack_type,form_factor,width,u_height,airflow
-延安电信机房,F04,active,低密1-2,dm-1-2-F04,网信,自用,图腾42U,4-post-cabinet,19,42,front-to-rear
-
+石家庄常山云数据中心,D14,active,常山云包间,csy-d14,4399,租用,图腾48U,4-post-cabinet,19,48,front-to-rear
+石家庄常山云数据中心,D15,active,常山云包间,csy-d15,4399,租用,图腾48U,4-post-cabinet,19,48,front-to-rear
+石家庄常山云数据中心,D16,active,常山云包间,csy-d16,4399,租用,图腾48U,4-post-cabinet,19,48,front-to-rear
+石家庄常山云数据中心,D17,active,常山云包间,csy-d17,4399,租用,图腾48U,4-post-cabinet,19,48,front-to-rear

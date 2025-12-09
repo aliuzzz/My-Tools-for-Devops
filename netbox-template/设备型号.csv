@@ -1,61 +1,9 @@
 manufacturer,model,slug,u_height
-鎴村皵,DELL R740,dell-r740,2
-鎴村皵,DELL R730XD,dell-r730xd,2
-鎴村皵,DELL R720XD,dell-r720xd,2
-鎴村皵,DELL R720,dell-r720,2
-鎴村皵,DELL R640,dell-r640,2
-鎴村皵,DELL R620,dell-r620,2
-鎴村皵,DELL R410,dell-r410,1
-鎴村皵,DELL R420,dell-r420,1
-鎴村皵,DELL R430,dell-r430,1
-鎴村皵,DELL R440,dell-r440,1
-娴疆,Inspur SA5112M4,inspur-sa5112m4,1
-娴疆,Inspur SA5212M4,inspur-sa5212m4,2
-娴疆,Inspur SA5212M5,inspur-sa5212m5,2
-娴疆,Inspur NF5140M3,inspur-nf5140m3,1
-鍗庝负,Huawei RH1288HV3,huawei-1288hv3,1
-鍗庝负,Huawei RH1288HV5,huawei-1288hv5,1
-鍗庝负,Huawei RH2288HV3,huawei-2288hv3,1
-鍗庝负,Huawei RH2288HV5,huawei-2288hv5,1
-鑱旀兂,Lenovo ThinkServer SR250,lenovo-thinkserver-sr250,1
-鑱旀兂,Lenovo ThinkServer SR360,lenovo-thinkserver-sr360,1
-鑱旀兂,Lenovo ThinkServer SR630,lenovo-thinkserver-sr630,1
-鑱旀兂,Lenovo ThinkServer SR650,lenovo-thinkserver-sr650,1
-H3C,H3C S6800-54QF-H3,h3c-s6800-54qf-h3,1
-鍗庝负,CE6855-48XS8CQ,ce6855-48xs8cq,1
-鍗庝负,CE12804S,ce12804s,8
-鍗庝负,CE12808-AC1,ce12808-ac1,14
-鍗庝负,CE16808-AH,ce16808-ah,16
-鍗庝负,S7706,s7706,10
-鍗庝负,S9303,s9303,10
-鍗庝负,S9306,s9306,10
-鍗庝负,CE6810-48S4Q-EI,ce6810-48s4q-ei,1
-鍗庝负,CE6820S-48S6CQ-B,ce6820s-48s6cq-b,1
-鍗庝负,CE6855-48S6Q-HI,ce6855-48s6q-hi,1
-鍗庝负,CE6865E-48S8CQ-B,ce6865e-48s8cq-b,1
-鍗庝负,CE6880-24S4Q2CQ-EI,ce6880-24s4q2cq-ei,1
-鍗庝负,CE8850-64CQ-EI,ce8850-64cq-ei,2
-鍗庝负,FM6857-48S6CQ-EI,fm6857-48s6cq-ei,1
-鍗庝负,FM6865-48S8CQ-EI,fm6865-48s8cq-ei,1
-鍗庝负,S1720X-32XWR,s1720x-32xwr,1
-鍗庝负,S5700-24TP-SI-AC,s5700-24tp-si-ac,1
-鍗庝负,S5700-26X-SI-12S-AC,s5700-26x-si-12s-ac,1
-鍗庝负,S5700-28X-LI-DC,s5700-28x-li-dc,1
-鍗庝负,S5700S-28P-LI-AC,s5700s-28p-li-ac,1
-鍗庝负,S5720-32P-EI-AC,s5720-32p-ei-ac,1
-鍗庝负,S5720-36C-EI-AC,s5720-36c-ei-ac,1
-鍗庝负,S5720-52X-SI-AC,s5720-52x-si-ac,1
-鍗庝负,S5720S-28X-SI-AC,s5720s-28x-si-ac,1
-鍗庝负,S5720S-52P-LI-AC,s5720s-52p-li-ac,1
-鍗庝负,S5720S-52X-LI-AC,s5720s-52x-li-ac,1
-鍗庝负,S5720S-52X-SI-AC,s5720s-52x-si-ac,1
-鍗庝负,S6720-30C-EI-24S-AC,s6720-30c-ei-24s-ac,1
-鍗庝负,S6720S-26Q-EI-24S,s6720s-26q-ei-24s,1
-鍗庝负,S6720S-S52X-A,s6720s-s52x-a,1
-鍗庝负,S6730S-S24X6Q-A,s6730s-s24x6q-a,1
-H3C,LS-S10508X,ls-s10508x,16
-H3C,H3C-S7506E,h3c-s7506e,14
-H3C,LS-S9850-32H-A,ls-s9850-32h-a,1
-H3C,S2626,s2626,1
-閿愭嵎,RG-S6510-4C,rg-s6510-4c,1
-
+飞塔,FortiGate 201E,fortigate-201e,1
+中兴,R5300 G4,r5300-g4,2
+中兴,ZXR10,zxr10,9
+惠普,HP DL165 G7,hp-dl165-g7,1
+惠普,HP DL160 G6,hp-dl160-g6,1
+戴尔,DELL-CS24-TY,dell-cs24-ty,1
+中兴,KS3200,ks3200,3
+中兴,KS2400,ks2400,2
