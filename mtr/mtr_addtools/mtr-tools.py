@@ -1,17 +1,25 @@
+#################
+## mtr-tools.py ##
+## v1.0.0       ##
+## 完整版，需要搭配最新配置文件 ##
+#################
+
 import sys
 import os
-import pymysql
+import json,pymysql
 import configparser
+import yaml
+import paramiko
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton,
-    QMessageBox, QComboBox, QListWidget
+    QMessageBox, QComboBox, QListWidget, QTabWidget, QVBoxLayout,
+    QFileDialog, QTextEdit, QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QCheckBox, QHeaderView, QGroupBox
 )
-from PyQt6.QtCore import QRegularExpression
+from PyQt6.QtCore import QRegularExpression, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QRegularExpressionValidator, QIcon
 
-# ========================
-# 本地应用版本号
-# ========================
+
 __version__ = "1.0.0"
 
 
@@ -88,6 +96,70 @@ class DBHelper:
         self.cursor.execute(sql, (ip,))
         self.conn.commit()
 
+    def get_nodes(self):
+        """获取mtr_node表的所有节点信息"""
+        self.cursor.execute("SELECT name, host, if_gaofang, status FROM mtr_node")
+        return self.cursor.fetchall()
+
+    def get_customs_and_ips(self):
+        """获取mtr_company_copy1表的custom和ip信息"""
+        self.cursor.execute("SELECT custom, ip, type_id FROM mtr_company_copy1")
+        return self.cursor.fetchall()
+
+
+class RemoteDeployWorker(QThread):
+    """远程部署工作线程：上传本地 YAML 文件并重启服务"""
+    result_signal = pyqtSignal(str, str)  # (host, result_message)
+
+    def __init__(self, hosts, ssh_config, local_yaml_path):
+        super().__init__()
+        self.hosts = hosts
+        self.ssh_config = ssh_config
+        self.local_yaml_path = local_yaml_path
+
+    def run(self):
+        if not os.path.exists(self.local_yaml_path):
+            self.result_signal.emit("所有主机", f"本地YAML文件不存在: {self.local_yaml_path}")
+            return
+
+        for host in self.hosts:
+            try:
+                # 建立 SSH + SFTP
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(
+                    hostname=host,
+                    port=self.ssh_config['port'],
+                    username=self.ssh_config['user'],
+                    password=self.ssh_config['password']
+                )
+
+                sftp = ssh.open_sftp()
+                remote_path = "/usr/local/bin/network_exporter/network_exporter.yml"
+                sftp.put(self.local_yaml_path, remote_path)
+                sftp.close()
+
+                # 重启服务
+                stdin, stdout, stderr = ssh.exec_command("sudo systemctl restart network_exporter")
+                error = stderr.read().decode()
+                if error:
+                    self.result_signal.emit(host, f"重启服务失败: {error}")
+                    ssh.close()
+                    continue
+
+                # 检查状态
+                stdin, stdout, stderr = ssh.exec_command("sudo systemctl is-active network_exporter")
+                status = stdout.read().decode().strip()
+                if status == "active":
+                    self.result_signal.emit(host, "部署成功")
+                else:
+                    self.result_signal.emit(host, f"服务未激活，状态: {status}")
+
+                ssh.close()
+
+            except Exception as e:
+                self.result_signal.emit(host, f"连接或部署失败: {str(e)}")
+
 
 class Main(QWidget):
     def __init__(self):
@@ -102,7 +174,7 @@ class Main(QWidget):
 
         self.operators = self.db.get_operators()
         self.ip_types = self.db.get_ip_types()
-
+        self._last_saved_yaml_path = None
         self.initUI()
 
     def check_version_consistency(self):
@@ -145,6 +217,32 @@ class Main(QWidget):
             return False
 
     def initUI(self):
+        self.setWindowTitle(f'MTR更新 v{__version__}')
+
+        icon_path = os.path.join(os.getcwd(), 'icon.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        self.resize(900, 700)
+        self.setStyleSheet("background-color: #F5F5F5; color: #333333; font-family: 'Microsoft YaHei'; font-size: 14px;")
+
+        self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.TabPosition.North)
+        self.tabs.setDocumentMode(True)
+
+        self.add_tab = QWidget()
+        self.grafana_tab = QWidget()
+
+        self.tabs.addTab(self.add_tab, "添加 MTR")
+        self.tabs.addTab(self.grafana_tab, "配置生成")
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.tabs)
+        self.setLayout(main_layout)
+
+        self.setup_add_tab()
+        self.setup_grafana_tab()
+
+    def setup_add_tab(self):
         combo_style = """
         QComboBox {
             border: 1px solid gray;
@@ -164,15 +262,6 @@ class Main(QWidget):
         }
         QPushButton:hover { background-color: #0A6Fd3; }
         """
-
-        # 窗口标题包含版本号
-        self.setWindowTitle(f'MTR更新 v{__version__}')
-
-        icon_path = os.path.join(os.getcwd(), 'icon.png')
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
-        self.resize(450, 430)
-        self.setStyleSheet("background-color: #F5F5F5; color: #333333; font-family: 'Microsoft YaHei'; font-size: 14px;")
 
         # 地区
         region_label = QLabel('地区')
@@ -233,7 +322,6 @@ class Main(QWidget):
         self.delete_button.setStyleSheet(button_style)
         self.delete_button.clicked.connect(self.delete_selected_ip)
 
-        # 布局
         grid = QGridLayout()
         grid.setSpacing(10)
 
@@ -261,7 +349,399 @@ class Main(QWidget):
         grid.addWidget(self.ip_list, 7, 1)
         grid.addWidget(self.delete_button, 8, 1)
 
-        self.setLayout(grid)
+        self.add_tab.setLayout(grid)
+
+    def setup_grafana_tab(self):
+        button_style = """
+        QPushButton {
+            border: 1px solid gray;
+            border-radius: 4px;
+            padding: 4px 12px;
+            background-color: #0A81F3;
+            color: white;
+        }
+        QPushButton:hover { background-color: #0A6Fd3; }
+        """
+
+        layout = QVBoxLayout()
+        layout.setSpacing(10)
+
+        # 节点表格
+        nodes_group = QGroupBox("节点列表")
+        nodes_layout = QVBoxLayout()
+        
+        self.nodes_table = QTableWidget()
+        self.nodes_table.setColumnCount(5)
+        self.nodes_table.setHorizontalHeaderLabels(["选择", "节点名", "IP地址", "是否高防", "状态"])
+        header = self.nodes_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        
+        nodes_layout.addWidget(self.nodes_table)
+        nodes_group.setLayout(nodes_layout)
+        
+        # 类型选择
+        type_group = QGroupBox("监控类型")
+        type_layout = QHBoxLayout()
+        
+        self.mtr_checkbox = QCheckBox("MTR")
+        self.mtr_checkbox.setChecked(True)
+        self.icmp_checkbox = QCheckBox("ICMP")
+        self.tcp_checkbox = QCheckBox("TCP")
+        
+        type_layout.addWidget(self.mtr_checkbox)
+        type_layout.addWidget(self.icmp_checkbox)
+        type_layout.addWidget(self.tcp_checkbox)
+        
+        # 高防监控类型选择
+        high_defense_label = QLabel("高防监控类型:")
+        self.high_defense_combo = QComboBox()
+        self.high_defense_combo.addItems(["无", "MTR", "ICMP", "TCP"])
+        self.high_defense_combo.setCurrentIndex(0)
+        
+        high_defense_layout = QHBoxLayout()
+        high_defense_layout.addWidget(high_defense_label)
+        high_defense_layout.addWidget(self.high_defense_combo)
+        
+        # 端口号输入
+        port_label = QLabel("端口号:")
+        self.port_edit = QLineEdit()
+        self.port_edit.setPlaceholderText("例如: 443")
+        self.port_edit.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d{1,5}$"), self.port_edit))
+        
+        port_layout = QHBoxLayout()
+        port_layout.addWidget(port_label)
+        port_layout.addWidget(self.port_edit)
+        
+        type_layout.addLayout(high_defense_layout)
+        type_layout.addLayout(port_layout)
+        type_group.setLayout(type_layout)
+        
+        # 按钮
+        button_layout = QHBoxLayout()
+        self.load_nodes_button = QPushButton("加载节点")
+        self.load_nodes_button.setStyleSheet(button_style)
+        self.load_nodes_button.clicked.connect(self.load_nodes)
+        
+        self.generate_yaml_button = QPushButton("生成YAML配置")
+        self.generate_yaml_button.setStyleSheet(button_style)
+        self.generate_yaml_button.clicked.connect(self.generate_yaml)
+        
+        self.save_yaml_button = QPushButton("保存YAML文件")
+        self.save_yaml_button.setStyleSheet(button_style)
+        self.save_yaml_button.clicked.connect(self.save_yaml)
+        
+        # 新增远程部署按钮
+        self.remote_deploy_button = QPushButton("远程部署")
+        self.remote_deploy_button.setStyleSheet(button_style)
+        self.remote_deploy_button.clicked.connect(self.remote_deploy)
+        
+        button_layout.addWidget(self.load_nodes_button)
+        button_layout.addWidget(self.generate_yaml_button)
+        button_layout.addWidget(self.save_yaml_button)
+        button_layout.addWidget(self.remote_deploy_button)
+        
+        # YAML显示区域
+        yaml_label = QLabel("生成的YAML配置:")
+        self.yaml_display = QTextEdit()
+        self.yaml_display.setReadOnly(True)
+        
+        layout.addWidget(nodes_group)
+        layout.addWidget(type_group)
+        layout.addLayout(button_layout)
+        layout.addWidget(yaml_label)
+        layout.addWidget(self.yaml_display)
+        
+        self.grafana_tab.setLayout(layout)
+
+    def load_nodes(self):
+        try:
+            nodes = self.db.get_nodes()
+            self.nodes_table.setRowCount(len(nodes))
+            
+            for i, (name, host, if_gaofang, status) in enumerate(nodes):
+                # 选择框
+                checkbox = QCheckBox()
+                self.nodes_table.setCellWidget(i, 0, checkbox)
+                
+                # 节点名
+                name_item = QTableWidgetItem(name)
+                self.nodes_table.setItem(i, 1, name_item)
+                
+                # IP地址
+                host_item = QTableWidgetItem(host)
+                self.nodes_table.setItem(i, 2, host_item)
+                
+                # 是否高防
+                gaofang_text = "是" if if_gaofang == 1 else "否"
+                node_status = "离线" if status == 1 else "在线"
+                gaofang_item = QTableWidgetItem(gaofang_text)
+                node_item = QTableWidgetItem(node_status)
+                self.nodes_table.setItem(i, 3, gaofang_item)
+                self.nodes_table.setItem(i, 4, node_item)
+                
+        except Exception as e:
+            QMessageBox.warning(self, "加载失败", f"无法加载节点信息：{e}")
+
+    def generate_yaml(self):
+        try:
+            # 读取配置文件
+            config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+            config = configparser.ConfigParser()
+            config.read(config_path, encoding='utf-8')
+            
+            # 构建YAML配置 - 使用有序字典确保顺序
+            yaml_config = {}
+            
+            # conf部分
+            if config.has_section('default'):
+                yaml_config['conf'] = {
+                    'refresh': config.get('default', 'refresh', fallback='15m'),
+                    'nameserver_timeout': config.get('default', 'nameserver_timeout', fallback='250ms')
+                }
+            
+            # icmp部分
+            if config.has_section('icmp'):
+                yaml_config['icmp'] = {
+                    'interval': config.get('icmp', 'interval', fallback='60s'),
+                    'timeout': config.get('icmp', 'timeout', fallback='5s'),
+                    'count': config.getint('icmp', 'count', fallback=10)
+                }
+            
+            # mtr部分
+            if config.has_section('mtr'):
+                yaml_config['mtr'] = {
+                    'interval': config.get('mtr', 'interval', fallback='60s'),
+                    'timeout': config.get('mtr', 'timeout', fallback='500ms'),
+                    'max-hops': config.getint('mtr', 'max-hops', fallback=30),
+                    'count': config.getint('mtr', 'count', fallback=10)
+                }
+            
+            # tcp部分
+            if config.has_section('tcp'):
+                yaml_config['tcp'] = {
+                    'interval': config.get('tcp', 'interval', fallback='3s'),
+                    'timeout': config.get('tcp', 'timeout', fallback='1s')
+                }
+            
+            # http_get部分
+            if config.has_section('http_get'):
+                yaml_config['http_get'] = {
+                    'interval': config.get('http_get', 'interval', fallback='15m'),
+                    'timeout': config.get('http_get', 'timeout', fallback='5s')
+                }
+            
+            # targets部分
+            targets = []
+            
+            # 获取选中的节点
+            selected_nodes = []
+            for i in range(self.nodes_table.rowCount()):
+                checkbox = self.nodes_table.cellWidget(i, 0)
+                if checkbox.isChecked():
+                    name = self.nodes_table.item(i, 1).text()
+                    host = self.nodes_table.item(i, 2).text()
+                    is_high_defense = self.nodes_table.item(i, 3).text() == "是"
+                    selected_nodes.append((name, host, is_high_defense))
+            
+            # 获取所有客户和IP信息
+            customs_ips = self.db.get_customs_and_ips()
+            
+            # 构建targets
+            for node_name, node_host, is_high_defense in selected_nodes:
+                for custom, ip, type_id in customs_ips:
+                    target_name = f"{node_name}->{custom}-{ip}"
+                    
+                    # 确定监控类型
+                    types = []
+                    if self.mtr_checkbox.isChecked():
+                        types.append('MTR')
+                    if self.icmp_checkbox.isChecked():
+                        types.append('ICMP')
+                    if self.tcp_checkbox.isChecked():
+                        types.append('TCP')
+                    
+                    # 如果没有勾选任何类型，则跳过
+                    if types:
+                        # 拼接类型
+                        type_str = '+'.join(types)
+                        
+                        target = {
+                            'name': target_name,
+                            'host': ip,
+                            'type': type_str
+                        }
+                        
+                        targets.append(target)
+                    
+                    # 如果是高防节点且type_id为3，且选择了高防监控类型
+                    high_defense_type = self.high_defense_combo.currentText()
+                    port = self.port_edit.text().strip()
+                    
+                    if is_high_defense and type_id == 3 and high_defense_type != "无" and port:
+                        high_defense_name = f"{node_name}-->{custom}-高防-{ip}"
+                        high_defense_target = {
+                            'name': high_defense_name,
+                            'host': f"{ip}:{port}",
+                            'type': high_defense_type
+                        }
+                        
+                        targets.append(high_defense_target)
+            
+            yaml_config['targets'] = targets
+            
+            # 手动构建YAML字符串以确保正确的顺序
+            yaml_str = ""
+            
+            # conf部分
+            if 'conf' in yaml_config:
+                yaml_str += "conf:\n"
+                for key, value in yaml_config['conf'].items():
+                    yaml_str += f"  {key}: {value}\n"
+            
+            # icmp部分
+            if 'icmp' in yaml_config:
+                yaml_str += "icmp:\n"
+                for key, value in yaml_config['icmp'].items():
+                    if isinstance(value, int):
+                        yaml_str += f"  {key}: {value}\n"
+                    else:
+                        yaml_str += f"  {key}: {value}\n"
+            
+            # mtr部分
+            if 'mtr' in yaml_config:
+                yaml_str += "mtr:\n"
+                for key, value in yaml_config['mtr'].items():
+                    if isinstance(value, int):
+                        yaml_str += f"  {key}: {value}\n"
+                    else:
+                        yaml_str += f"  {key}: {value}\n"
+            
+            # tcp部分
+            if 'tcp' in yaml_config:
+                yaml_str += "tcp:\n"
+                for key, value in yaml_config['tcp'].items():
+                    if isinstance(value, int):
+                        yaml_str += f"  {key}: {value}\n"
+                    else:
+                        yaml_str += f"  {key}: {value}\n"
+            
+            # http_get部分
+            if 'http_get' in yaml_config:
+                yaml_str += "http_get:\n"
+                for key, value in yaml_config['http_get'].items():
+                    if isinstance(value, int):
+                        yaml_str += f"  {key}: {value}\n"
+                    else:
+                        yaml_str += f"  {key}: {value}\n"
+            
+            # targets部分
+            if 'targets' in yaml_config:
+                yaml_str += "targets:\n"
+                for target in yaml_config['targets']:
+                    yaml_str += f"- host: {target['host']}\n"
+                    yaml_str += f"  name: {target['name']}\n"
+                    yaml_str += f"  type: {target['type']}\n"
+            
+            self.yaml_display.setText(yaml_str)
+            
+        except Exception as e:
+            QMessageBox.warning(self, "生成失败", f"无法生成YAML配置：{e}")
+
+    def save_yaml(self):
+        yaml_content = self.yaml_display.toPlainText().strip()
+        if not yaml_content:
+            QMessageBox.warning(self, "提示", "请先生成YAML配置")
+            return
+
+        # 尝试自动生成路径
+        auto_path = self._get_save_path_from_selected_nodes()
+        if auto_path:
+            try:
+                with open(auto_path, 'w', encoding='utf-8') as f:
+                    f.write(yaml_content)
+                QMessageBox.information(self, "成功", f"YAML配置已自动保存到：\n{auto_path}")
+                self._last_saved_yaml_path = auto_path  # 供 remote_deploy 使用
+            except Exception as e:
+                QMessageBox.warning(self, "保存失败", f"无法自动保存文件：{e}")
+        else:
+            # 回退到手动选择（兼容无节点情况）
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "保存YAML文件", "", 
+                "YAML文件 (*.yml *.yaml);;所有文件 (*)"
+            )
+            if not file_path:
+                return
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(yaml_content)
+                QMessageBox.information(self, "成功", f"YAML配置已保存到 {file_path}")
+                self._last_saved_yaml_path = file_path
+            except Exception as e:
+                QMessageBox.warning(self, "保存失败", f"无法保存文件：{e}")
+
+    def remote_deploy(self):
+        # 确保已有保存的 YAML 文件
+        if not hasattr(self, '_last_saved_yaml_path') or not self._last_saved_yaml_path:
+            # 如果还没保存过，先自动保存一次
+            self.save_yaml()
+            if not self._last_saved_yaml_path:
+                QMessageBox.warning(self, "错误", "未能生成有效的YAML文件路径")
+                return
+
+        yaml_path = self._last_saved_yaml_path
+        if not os.path.exists(yaml_path):
+            QMessageBox.warning(self, "错误", f"YAML文件不存在：{yaml_path}")
+            return
+
+        # 读取SSH配置
+        config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+        config = configparser.ConfigParser()
+        config.read(config_path, encoding='utf-8')
+        if not config.has_section('ssh'):
+            QMessageBox.warning(self, "错误", "配置文件中缺少SSH配置")
+            return
+
+        ssh_config = {
+            'user': config.get('ssh', 'user', fallback='root'),
+            'password': config.get('ssh', 'password', fallback=''),
+            'port': config.getint('ssh', 'port', fallback=22)
+        }
+
+        # 获取选中的节点IP
+        selected_hosts = []
+        for i in range(self.nodes_table.rowCount()):
+            checkbox = self.nodes_table.cellWidget(i, 0)
+            if checkbox and checkbox.isChecked():
+                host = self.nodes_table.item(i, 2).text()
+                selected_hosts.append(host)
+
+        if not selected_hosts:
+            QMessageBox.warning(self, "提示", "请先选择要部署的节点")
+            return
+
+        # 确认操作
+        reply = QMessageBox.question(
+            self, "确认部署",
+            f"将从本地文件部署：\n{yaml_path}\n\n目标服务器：\n{', '.join(selected_hosts)}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.No:
+            return
+
+        # 启动线程
+        self.worker = RemoteDeployWorker(selected_hosts, ssh_config, yaml_path)
+        self.worker.result_signal.connect(self.handle_deploy_result)
+        self.worker.start()
+
+    def handle_deploy_result(self, host, result):
+        if result == "部署成功":
+            QMessageBox.information(self, "成功", f"服务器 {host} 部署成功")
+        else:
+            QMessageBox.warning(self, "失败", f"服务器 {host} 部署失败: {result}")
 
     def update_room(self):
         region = self.region_edit.currentText().strip()
@@ -350,6 +830,23 @@ class Main(QWidget):
             self.update_ip_list()
         except Exception as e:
             QMessageBox.warning(self, '警告', f'更新失败：{e}')
+    
+    def _get_save_path_from_selected_nodes(self):
+        """根据选中的节点生成默认 YAML 保存路径"""
+        selected_names = []
+        for i in range(self.nodes_table.rowCount()):
+            checkbox = self.nodes_table.cellWidget(i, 0)
+            if checkbox and checkbox.isChecked():
+                name = self.nodes_table.item(i, 1).text()
+                selected_names.append(name)
+        
+        if not selected_names:
+            return None
+        
+        # 使用第一个节点名
+        base_name = selected_names[0].replace(" ", "_").replace("/", "_")
+        filename = f"{base_name}_network_exporter.yml"
+        return os.path.join(os.getcwd(), filename)
 
 
 if __name__ == '__main__':
