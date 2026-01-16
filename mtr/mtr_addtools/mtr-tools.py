@@ -551,7 +551,7 @@ class Main(QWidget):
             
             # 构建targets - 首先是数据库中的客户IP
             for node_name, node_host, is_high_defense in selected_nodes:
-                for custom, ip, type_id in customs_ips:
+                for custom, ip in customs_ips:
                     target_name = f"{node_name}-->{custom}-{ip}"
                     
                     # 确定监控类型
