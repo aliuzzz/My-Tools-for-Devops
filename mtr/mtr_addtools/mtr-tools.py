@@ -421,20 +421,20 @@ class Main(QWidget):
         
         # 按钮
         button_layout = QHBoxLayout()
-        self.load_nodes_button = QPushButton("加载节点")
+        self.load_nodes_button = QPushButton("①加载节点")
         self.load_nodes_button.setStyleSheet(button_style)
         self.load_nodes_button.clicked.connect(self.load_nodes)
         
-        self.generate_yaml_button = QPushButton("生成YAML配置")
+        self.generate_yaml_button = QPushButton("②生成YAML配置")
         self.generate_yaml_button.setStyleSheet(button_style)
         self.generate_yaml_button.clicked.connect(self.generate_yaml)
         
-        self.save_yaml_button = QPushButton("保存YAML文件")
+        self.save_yaml_button = QPushButton("③保存YAML文件")
         self.save_yaml_button.setStyleSheet(button_style)
         self.save_yaml_button.clicked.connect(self.save_yaml)
         
         # 新增远程部署按钮
-        self.remote_deploy_button = QPushButton("远程部署")
+        self.remote_deploy_button = QPushButton("④远程部署")
         self.remote_deploy_button.setStyleSheet(button_style)
         self.remote_deploy_button.clicked.connect(self.remote_deploy)
         
