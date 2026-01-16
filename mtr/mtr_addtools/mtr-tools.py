@@ -39,7 +39,7 @@ class DBHelper:
         )
         self.cursor = self.conn.cursor()
 
-    def get_distinct(self, field, table='mtr_company_copy1'):
+    def get_distinct(self, field, table='mtr_company'):
         self.cursor.execute(f"SELECT DISTINCT {field} FROM {table}")
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
@@ -61,29 +61,29 @@ class DBHelper:
                 result[row[0]] = row[1]
         return result
 
-    def get_by_condition(self, field, cond_field, cond_value, table='mtr_company_copy1'):
+    def get_by_condition(self, field, cond_field, cond_value, table='mtr_company'):
         sql = f"SELECT DISTINCT {field} FROM {table} WHERE {cond_field} = %s"
         self.cursor.execute(sql, (cond_value,))
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
     def get_ips(self, region, room, custom):
-        sql = """SELECT ip FROM mtr_company_copy1
+        sql = """SELECT ip FROM mtr_company
                  WHERE region=%s AND room=%s AND custom=%s"""
         self.cursor.execute(sql, (region, room, custom))
         return [row[0] for row in self.cursor.fetchall() if row[0]]
 
     def ip_exists(self, ip):
-        self.cursor.execute("SELECT COUNT(*) FROM mtr_company_copy1 WHERE ip = %s", (ip,))
+        self.cursor.execute("SELECT COUNT(*) FROM mtr_company WHERE ip = %s", (ip,))
         return self.cursor.fetchone()[0] > 0
 
     def region_exists(self, region_prefix):
-        sql = "SELECT region FROM mtr_company_copy1 WHERE region LIKE %s GROUP BY region"
+        sql = "SELECT region FROM mtr_company WHERE region LIKE %s GROUP BY region"
         self.cursor.execute(sql, (f"%{region_prefix}%",))
         return [row[0] for row in self.cursor.fetchall()]
 
     def insert_record(self, ip, region, room, custom, operator_id, ip_type_id, description):
         sql = """
-            INSERT INTO mtr_company_copy1 
+            INSERT INTO mtr_company 
             (ip, region, room, custom, operator_id, type_id, description, d_time)
             VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
         """
@@ -92,7 +92,7 @@ class DBHelper:
 
     def delete_ip(self, ip):
         """删除指定 IP 的记录"""
-        sql = "DELETE FROM mtr_company_copy1 WHERE ip = %s"
+        sql = "DELETE FROM mtr_company WHERE ip = %s"
         self.cursor.execute(sql, (ip,))
         self.conn.commit()
 
@@ -102,8 +102,8 @@ class DBHelper:
         return self.cursor.fetchall()
 
     def get_customs_and_ips(self):
-        """获取mtr_company_copy1表的custom和ip信息"""
-        self.cursor.execute("SELECT custom, ip, type_id FROM mtr_company_copy1")
+        """获取mtr_company表的custom和ip信息"""
+        self.cursor.execute("SELECT custom, ip, type_id FROM mtr_company")
         return self.cursor.fetchall()
 
 
@@ -549,10 +549,10 @@ class Main(QWidget):
             # 获取所有客户和IP信息
             customs_ips = self.db.get_customs_and_ips()
             
-            # 构建targets
+            # 构建targets - 首先是数据库中的客户IP
             for node_name, node_host, is_high_defense in selected_nodes:
                 for custom, ip, type_id in customs_ips:
-                    target_name = f"{node_name}->{custom}-{ip}"
+                    target_name = f"{node_name}-->{custom}-{ip}"
                     
                     # 确定监控类型
                     types = []
@@ -575,20 +575,62 @@ class Main(QWidget):
                         }
                         
                         targets.append(target)
-                    
-                    # 如果是高防节点且type_id为3，且选择了高防监控类型
-                    high_defense_type = self.high_defense_combo.currentText()
-                    port = self.port_edit.text().strip()
-                    
-                    if is_high_defense and type_id == 3 and high_defense_type != "无" and port:
-                        high_defense_name = f"{node_name}-->{custom}-高防-{ip}"
-                        high_defense_target = {
-                            'name': high_defense_name,
-                            'host': f"{ip}:{port}",
-                            'type': high_defense_type
-                        }
-                        
-                        targets.append(high_defense_target)
+            
+            # 如果是高防节点且选择了高防监控类型，添加高防IP段的监控
+            high_defense_type = self.high_defense_combo.currentText() 
+            port = self.port_edit.text().strip()
+            
+            if any(node[2] for node in selected_nodes) and high_defense_type != "无" and port:
+                # 获取配置文件中的高防IP段
+                if config.has_section('gaofang_ip'):
+                    gaofang_ips = config.options('gaofang_ip')
+                    for option in gaofang_ips:
+                        gaofang_ip_cidr = config.get('gaofang_ip', option)
+                        # 解析CIDR格式的IP段
+                        if '/' in gaofang_ip_cidr:
+                            base_ip, prefix = gaofang_ip_cidr.split('/')
+                            prefix = int(prefix)
+                            
+                            # 计算网络掩码
+                            mask = (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF
+                            
+                            # 解析基础IP
+                            ip_parts = list(map(int, base_ip.split('.')))
+                            base_numeric = (ip_parts[0] << 24) + (ip_parts[1] << 16) + (ip_parts[2] << 8) + ip_parts[3]
+                            
+                            # 计算网络地址和广播地址
+                            network_addr = base_numeric & mask
+                            broadcast_addr = network_addr | ((1 << (32 - prefix)) - 1)
+                            
+                            # 生成IP范围（排除网络地址和广播地址）
+                            for ip_num in range(network_addr + 1, broadcast_addr):
+                                current_ip = f"{(ip_num >> 24) & 0xFF}.{(ip_num >> 16) & 0xFF}.{(ip_num >> 8) & 0xFF}.{ip_num & 0xFF}"
+                                
+                                # 为每个选中的高防节点生成高防IP监控
+                                for node_name, node_host, is_high_defense in selected_nodes:
+                                    if is_high_defense:  # 只为高防节点生成高防IP监控
+                                        high_defense_name = f"{node_name}-->高防-{current_ip}"
+                                        
+                                        high_defense_target = {
+                                            'name': high_defense_name,
+                                            'host': f"{current_ip}:{port}",
+                                            'type': high_defense_type
+                                        }
+                                        
+                                        targets.append(high_defense_target)
+                        else:
+                            # 如果不是CIDR格式，直接使用IP
+                            for node_name, node_host, is_high_defense in selected_nodes:
+                                if is_high_defense:  # 只为高防节点生成高防IP监控
+                                    high_defense_name = f"{node_name}-->高防-{gaofang_ip_cidr}"
+                                    
+                                    high_defense_target = {
+                                        'name': high_defense_name,
+                                        'host': f"{gaofang_ip_cidr}:{port}",
+                                        'type': high_defense_type
+                                    }
+                                    
+                                    targets.append(high_defense_target)
             
             yaml_config['targets'] = targets
             
