@@ -161,6 +161,6 @@ def csv_to_html(csv_file_path, html_file_path=None, room_column_name="机房"):
 # 使用示例
 if __name__ == "__main__":
     # 替换为你的CSV文件路径
-    csv_file = "daily_cacti_data.csv"
+    csv_file = "D:\\0Work\\Code\\My-Tools-for-Devops\\output_custom\\daily_cacti_data.csv"
     # 可以指定机房列的名称，如csv_to_html(csv_file, room_column_name="数据中心")
     csv_to_html(csv_file)
