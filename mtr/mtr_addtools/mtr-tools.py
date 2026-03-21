@@ -6,9 +6,8 @@
 
 import sys
 import os
-import json,pymysql
+import pymysql
 import configparser
-import yaml
 import paramiko
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton,
@@ -102,8 +101,9 @@ class DBHelper:
         return self.cursor.fetchall()
 
     def get_customs_and_ips(self):
-        """获取mtr_company表的custom和ip信息"""
-        self.cursor.execute("SELECT custom, ip, type_id FROM mtr_company")
+        """获取mtr_company表的custom, ip, type_id 和 operator_id信息"""
+        # 修改SQL，增加 operator_id 字段
+        self.cursor.execute("SELECT custom, ip, type_id, operator_id FROM mtr_company")
         return self.cursor.fetchall()
 
 
@@ -165,7 +165,8 @@ class Main(QWidget):
     def __init__(self):
         super().__init__()
 
-        config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+        #config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+        config_path = os.path.join(os.getcwd(),'mtr.conf')
         self.db = DBHelper(config_path)
 
         # 检查版本一致性，失败则退出
@@ -488,7 +489,7 @@ class Main(QWidget):
     def generate_yaml(self):
         try:
             # 读取配置文件
-            config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+            config_path = os.path.join(os.getcwd(), 'mtr.conf')
             config = configparser.ConfigParser()
             config.read(config_path, encoding='utf-8')
             
@@ -546,20 +547,55 @@ class Main(QWidget):
                     is_high_defense = self.nodes_table.item(i, 3).text() == "是"
                     selected_nodes.append((name, host, is_high_defense))
             
-            # 获取所有客户和IP信息
+            # 获取所有客户和IP信息 (现在包含 operator_id)
             customs_ips = self.db.get_customs_and_ips()
             
+            # --- 运营商ID定义 (参考 mtr_operator 表) ---
+            OPERATOR_UNICOM = 1  # 联通
+            OPERATOR_TELECOM = 2 # 电信
+            OPERATOR_MOBILE = 3  # 移动
+            OPERATOR_BGP = 4     # BGP
+
             # 构建targets - 首先是数据库中的客户IP
             for node_name, node_host, is_high_defense in selected_nodes:
-                for custom, ip in customs_ips:
+                
+                # --- 新增逻辑：判断节点类型 ---
+                node_type = "other" # 默认为其他
+                if "双线" in node_name or "三线" in node_name:
+                    node_type = "other"
+                elif "联通" in node_name:
+                    node_type = "unicom"
+                elif "电信" in node_name:
+                    node_type = "telecom"
+                elif "移动" in node_name:
+                    node_type = "mobile"
+                
+                # --- 新增逻辑：确定允许的运营商ID列表 ---
+                allowed_operator_ids = []
+                if node_type == "unicom":
+                    allowed_operator_ids = [OPERATOR_UNICOM, OPERATOR_BGP]
+                elif node_type == "telecom":
+                    allowed_operator_ids = [OPERATOR_TELECOM, OPERATOR_BGP]
+                elif node_type == "mobile":
+                    allowed_operator_ids = [OPERATOR_MOBILE, OPERATOR_BGP]
+                else: # other (双线、三线等)
+                    allowed_operator_ids = [OPERATOR_UNICOM, OPERATOR_TELECOM, OPERATOR_MOBILE, OPERATOR_BGP]
+
+                for custom, ip, type_id, operator_id in customs_ips:
+                    # --- 新增逻辑：过滤 IP ---
+                    # 如果 operator_id 为空或者不在允许列表中，则跳过
+                    if operator_id is None or operator_id not in allowed_operator_ids:
+                        continue
+                    # --- 过滤结束 ---
+
                     target_name = f"{node_name}-->{custom}-{ip}"
                     
                     # 确定监控类型
                     types = []
-                    if self.mtr_checkbox.isChecked():
-                        types.append('MTR')
                     if self.icmp_checkbox.isChecked():
                         types.append('ICMP')
+                    if self.mtr_checkbox.isChecked():
+                        types.append('MTR')
                     if self.tcp_checkbox.isChecked():
                         types.append('TCP')
                     
@@ -616,7 +652,6 @@ class Main(QWidget):
                                             'host': f"{current_ip}:{port}",
                                             'type': high_defense_type
                                         }
-                                        
                                         targets.append(high_defense_target)
                         else:
                             # 如果不是CIDR格式，直接使用IP
@@ -629,7 +664,6 @@ class Main(QWidget):
                                         'host': f"{gaofang_ip_cidr}:{port}",
                                         'type': high_defense_type
                                     }
-                                    
                                     targets.append(high_defense_target)
             
             yaml_config['targets'] = targets
@@ -739,7 +773,8 @@ class Main(QWidget):
             return
 
         # 读取SSH配置
-        config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+        #config_path = os.path.join(os.getcwd(), 'mtr', 'mtr_addtools', 'mtr.conf')
+        config_path = os.path.join(os.getcwd(), 'mtr.conf')
         config = configparser.ConfigParser()
         config.read(config_path, encoding='utf-8')
         if not config.has_section('ssh'):
