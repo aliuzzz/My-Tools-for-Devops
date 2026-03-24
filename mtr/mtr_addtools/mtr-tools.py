@@ -1,6 +1,6 @@
 #################
 ## mtr-tools.py ##
-## v1.0.0       ##
+## v1.0.1       ##
 ## 完整版，需要搭配最新配置文件 ##
 #################
 
@@ -19,7 +19,30 @@ from PyQt6.QtCore import QRegularExpression, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QRegularExpressionValidator, QIcon
 
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
+
+MESSAGE_BOX_STYLE = """
+    * { background-color: white; color: #212529; font-size: 13px; }
+    QPushButton {
+        border: none; border-radius: 6px; padding: 8px 24px;
+        background-color: #0d6efd; color: white; font-weight: 500; min-width: 80px;
+    }
+    QPushButton:hover { background-color: #0b5ed7; }
+"""
+
+
+# 全局消息框辅助函数
+def show_msg(parent, icon, title, text, buttons=None):
+    """统一弹窗，避免样式污染"""
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setIcon(icon)
+    msg.setText(text)
+    if buttons:
+        msg.setStandardButtons(buttons)
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+    msg.setStyleSheet(MESSAGE_BOX_STYLE)
+    return msg.exec()
 
 
 class DBHelper:
@@ -188,55 +211,77 @@ class Main(QWidget):
             result = self.db.cursor.fetchone()
 
             if not result:
-                QMessageBox.critical(
-                    self,
-                    "数据库错误",
-                    "数据库中未找到版本信息（mtr_version 表为空）！\n请检查数据库结构。"
-                )
+                show_msg(self, QMessageBox.Icon.Critical, "数据库错误",
+                         "数据库中未找到版本信息（mtr_version 表为空）！\n请检查数据库结构。")
                 return False
 
             db_version = str(result[0]).strip()
 
             if db_version != __version__:
-                QMessageBox.warning(
-                    self,
-                    "版本不匹配",
-                    f"当前本地版本：{__version__}\n"
-                    f"数据库要求版本：{db_version}\n\n"
-                    "请更新应用程序后再使用！"
-                )
+                show_msg(self, QMessageBox.Icon.Warning, "版本不匹配",
+                         f"当前本地版本：{__version__}\n数据库要求版本：{db_version}\n\n请更新应用程序后再使用！")
                 return False
 
             return True
 
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "版本检查失败",
-                f"无法读取数据库版本信息：\n{str(e)}"
-            )
+            show_msg(self, QMessageBox.Icon.Critical, "版本检查失败",
+                     f"无法读取数据库版本信息：\n{str(e)}")
             return False
 
     def initUI(self):
-        self.setWindowTitle(f'MTR更新 v{__version__}')
+        self.setWindowTitle(f'MTR 网络监控管理工具 v{__version__}')
 
-        icon_path = os.path.join(os.getcwd(), 'icon.png')
+        icon_path = os.path.join(os.getcwd(), 'mtr.ico')
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
-        self.resize(900, 700)
-        self.setStyleSheet("background-color: #F5F5F5; color: #333333; font-family: 'Microsoft YaHei'; font-size: 14px;")
+        self.resize(1100, 750)
+
+        # 现代化全局样式
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                color: #212529;
+                font-family: 'Microsoft YaHei UI', 'Segoe UI', sans-serif;
+                font-size: 13px;
+            }
+            QTabWidget::pane {
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                background-color: white;
+                padding: 5px;
+            }
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 24px;
+                margin-right: 4px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                font-weight: 500;
+            }
+            QTabBar::tab:selected {
+                background-color: white;
+                color: #0d6efd;
+                border-bottom: 2px solid #0d6efd;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #f1f3f5;
+            }
+        """)
 
         self.tabs = QTabWidget()
         self.tabs.setTabPosition(QTabWidget.TabPosition.North)
-        self.tabs.setDocumentMode(True)
+        self.tabs.setDocumentMode(False)
 
         self.add_tab = QWidget()
         self.grafana_tab = QWidget()
 
-        self.tabs.addTab(self.add_tab, "添加 MTR")
-        self.tabs.addTab(self.grafana_tab, "配置生成")
+        self.tabs.addTab(self.add_tab, "📝 添加 MTR")
+        self.tabs.addTab(self.grafana_tab, "⚙️ 配置生成")
 
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(15, 15, 15, 15)
         main_layout.addWidget(self.tabs)
         self.setLayout(main_layout)
 
@@ -246,26 +291,62 @@ class Main(QWidget):
     def setup_add_tab(self):
         combo_style = """
         QComboBox {
-            border: 1px solid gray;
-            border-radius: 4px;
-            padding: 3px 18px 3px 6px;
-            min-width: 6em;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            padding: 8px 12px;
+            background-color: white;
+            min-height: 20px;
+        }
+        QComboBox:focus {
+            border-color: #0d6efd;
+        }
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        QComboBox::down-arrow {
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid #6c757d;
         }
         """
-        line_edit_style = "QLineEdit { border: 1px solid gray; border-radius: 4px; padding: 3px; }"
+        line_edit_style = """
+        QLineEdit {
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            padding: 8px 12px;
+            background-color: white;
+            min-height: 20px;
+        }
+        QLineEdit:focus {
+            border-color: #0d6efd;
+        }
+        """
         button_style = """
         QPushButton {
-            border: 1px solid gray;
-            border-radius: 4px;
-            padding: 4px 12px;
-            background-color: #0A81F3;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            background-color: #0d6efd;
             color: white;
+            font-weight: 500;
+            min-height: 20px;
         }
-        QPushButton:hover { background-color: #0A6Fd3; }
+        QPushButton:hover {
+            background-color: #0b5ed7;
+        }
+        QPushButton:pressed {
+            background-color: #0a58ca;
+        }
         """
+
+        label_style = "QLabel { font-weight: 500; color: #495057; padding: 5px 0; }"
 
         # 地区
         region_label = QLabel('地区')
+        region_label.setStyleSheet(label_style)
         self.region_edit = QComboBox()
         self.region_edit.setEditable(True)
         self.region_edit.addItems(self.db.get_distinct('region'))
@@ -274,6 +355,7 @@ class Main(QWidget):
 
         # 机房
         room_label = QLabel('机房')
+        room_label.setStyleSheet(label_style)
         self.room_edit = QComboBox()
         self.room_edit.setEditable(True)
         self.room_edit.setStyleSheet(combo_style)
@@ -281,14 +363,17 @@ class Main(QWidget):
 
         # 客户
         custom_label = QLabel('客户')
+        custom_label.setStyleSheet(label_style)
         self.custom_edit = QComboBox()
         self.custom_edit.setEditable(True)
         self.custom_edit.setStyleSheet(combo_style)
         self.custom_edit.currentIndexChanged.connect(self.update_ip_list)
 
         # IP
-        ip_label = QLabel('IP')
+        ip_label = QLabel('IP 地址')
+        ip_label.setStyleSheet(label_style)
         self.ip_edit = QLineEdit()
+        self.ip_edit.setPlaceholderText("例如: 192.168.1.1")
         ip_reg = QRegularExpression("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
                                     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
                                     "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
@@ -298,33 +383,74 @@ class Main(QWidget):
 
         # 运营商
         operator_label = QLabel('运营商')
+        operator_label.setStyleSheet(label_style)
         self.operator_edit = QComboBox()
         for op_id, op_name in self.operators.items():
             self.operator_edit.addItem(op_name, op_id)
         self.operator_edit.setStyleSheet(combo_style)
 
         # IP 类型
-        iptype_label = QLabel("IP类型")
+        iptype_label = QLabel("IP 类型")
+        iptype_label.setStyleSheet(label_style)
         self.iptype_edit = QComboBox()
         for type_id, display_name in self.ip_types.items():
             self.iptype_edit.addItem(display_name, type_id)
         self.iptype_edit.setStyleSheet(combo_style)
 
         # 提交
-        submit_button = QPushButton('提交')
+        submit_button = QPushButton('✓ 提交')
         submit_button.setStyleSheet(button_style)
         submit_button.clicked.connect(self.submit)
 
         # IP 列表
         ip_list_label = QLabel('该客户的 IP 列表')
+        ip_list_label.setStyleSheet(label_style)
         self.ip_list = QListWidget()
+        self.ip_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #ced4da;
+                border-radius: 6px;
+                background-color: white;
+                padding: 5px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 4px;
+                margin: 2px;
+            }
+            QListWidget::item:selected {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+            }
+            QListWidget::item:hover {
+                background-color: #f8f9fa;
+            }
+        """)
 
-        self.delete_button = QPushButton('删除选中 IP')
-        self.delete_button.setStyleSheet(button_style)
+        delete_button_style = """
+        QPushButton {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            font-weight: 500;
+            min-height: 20px;
+        }
+        QPushButton:hover {
+            background-color: #bb2d3b;
+        }
+        QPushButton:pressed {
+            background-color: #b02a37;
+        }
+        """
+        self.delete_button = QPushButton('🗑 删除选中 IP')
+        self.delete_button.setStyleSheet(delete_button_style)
         self.delete_button.clicked.connect(self.delete_selected_ip)
 
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(15)
+        grid.setContentsMargins(20, 20, 20, 20)
 
         grid.addWidget(region_label, 0, 0)
         grid.addWidget(self.region_edit, 0, 1)
@@ -355,126 +481,274 @@ class Main(QWidget):
     def setup_grafana_tab(self):
         button_style = """
         QPushButton {
-            border: 1px solid gray;
-            border-radius: 4px;
-            padding: 4px 12px;
-            background-color: #0A81F3;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            background-color: #0d6efd;
             color: white;
+            font-weight: 500;
+            min-height: 20px;
         }
-        QPushButton:hover { background-color: #0A6Fd3; }
+        QPushButton:hover {
+            background-color: #0b5ed7;
+        }
+        QPushButton:pressed {
+            background-color: #0a58ca;
+        }
         """
 
         layout = QVBoxLayout()
-        layout.setSpacing(10)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # 节点表格
-        nodes_group = QGroupBox("节点列表")
+        nodes_group = QGroupBox("📡 节点列表")
+        nodes_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: 600;
+                font-size: 14px;
+                color: #212529;
+                border: 2px solid #dee2e6;
+                border-radius: 8px;
+                margin-top: 12px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 8px;
+                background-color: white;
+            }
+        """)
         nodes_layout = QVBoxLayout()
-        
+
         self.nodes_table = QTableWidget()
         self.nodes_table.setColumnCount(5)
         self.nodes_table.setHorizontalHeaderLabels(["选择", "节点名", "IP地址", "是否高防", "状态"])
+        self.nodes_table.setStyleSheet("""
+            QTableWidget {
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                background-color: white;
+                gridline-color: #e9ecef;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid #dee2e6;
+                font-weight: 600;
+                color: #495057;
+            }
+        """)
         header = self.nodes_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+
         nodes_layout.addWidget(self.nodes_table)
         nodes_group.setLayout(nodes_layout)
         
         # 类型选择
-        type_group = QGroupBox("监控类型")
+        type_group = QGroupBox("🎯 监控类型")
+        type_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: 600;
+                font-size: 14px;
+                color: #212529;
+                border: 2px solid #dee2e6;
+                border-radius: 8px;
+                margin-top: 12px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 8px;
+                background-color: white;
+            }
+        """)
         type_layout = QHBoxLayout()
-        
+
+        checkbox_style = """
+            QCheckBox {
+                spacing: 8px;
+                font-weight: 500;
+            }
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                border: 2px solid #ced4da;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #0d6efd;
+                border-color: #0d6efd;
+            }
+        """
+
         self.mtr_checkbox = QCheckBox("MTR")
         self.mtr_checkbox.setChecked(True)
+        self.mtr_checkbox.setStyleSheet(checkbox_style)
         self.icmp_checkbox = QCheckBox("ICMP")
+        self.icmp_checkbox.setStyleSheet(checkbox_style)
         self.tcp_checkbox = QCheckBox("TCP")
-        
+        self.tcp_checkbox.setStyleSheet(checkbox_style)
+
         type_layout.addWidget(self.mtr_checkbox)
         type_layout.addWidget(self.icmp_checkbox)
         type_layout.addWidget(self.tcp_checkbox)
-        
+        type_layout.addSpacing(20)
+
         # 高防监控类型选择
         high_defense_label = QLabel("高防监控类型:")
+        high_defense_label.setStyleSheet("font-weight: 500; color: #495057;")
         self.high_defense_combo = QComboBox()
         self.high_defense_combo.addItems(["无", "MTR", "ICMP", "TCP"])
         self.high_defense_combo.setCurrentIndex(0)
-        
+        self.high_defense_combo.setStyleSheet("""
+            QComboBox {
+                border: 2px solid #ced4da;
+                border-radius: 6px;
+                padding: 6px 10px;
+                background-color: white;
+                min-width: 100px;
+            }
+            QComboBox:focus {
+                border-color: #0d6efd;
+            }
+        """)
+
         high_defense_layout = QHBoxLayout()
         high_defense_layout.addWidget(high_defense_label)
         high_defense_layout.addWidget(self.high_defense_combo)
-        
+
         # 端口号输入
         port_label = QLabel("端口号:")
+        port_label.setStyleSheet("font-weight: 500; color: #495057;")
         self.port_edit = QLineEdit()
         self.port_edit.setPlaceholderText("例如: 443")
         self.port_edit.setValidator(QRegularExpressionValidator(QRegularExpression(r"^\d{1,5}$"), self.port_edit))
-        
+        self.port_edit.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #ced4da;
+                border-radius: 6px;
+                padding: 6px 10px;
+                background-color: white;
+                min-width: 100px;
+            }
+            QLineEdit:focus {
+                border-color: #0d6efd;
+            }
+        """)
+
         port_layout = QHBoxLayout()
         port_layout.addWidget(port_label)
         port_layout.addWidget(self.port_edit)
-        
+
         type_layout.addLayout(high_defense_layout)
         type_layout.addLayout(port_layout)
+        type_layout.addStretch()
         type_group.setLayout(type_layout)
         
         # 按钮
         button_layout = QHBoxLayout()
-        self.load_nodes_button = QPushButton("①加载节点")
+        button_layout.setSpacing(10)
+
+        self.load_nodes_button = QPushButton("① 加载节点")
         self.load_nodes_button.setStyleSheet(button_style)
         self.load_nodes_button.clicked.connect(self.load_nodes)
-        
-        self.generate_yaml_button = QPushButton("②生成YAML配置")
+
+        self.generate_yaml_button = QPushButton("② 生成配置")
         self.generate_yaml_button.setStyleSheet(button_style)
         self.generate_yaml_button.clicked.connect(self.generate_yaml)
-        
-        self.save_yaml_button = QPushButton("③保存YAML文件")
+
+        self.save_yaml_button = QPushButton("③ 保存文件")
         self.save_yaml_button.setStyleSheet(button_style)
         self.save_yaml_button.clicked.connect(self.save_yaml)
-        
-        # 新增远程部署按钮
-        self.remote_deploy_button = QPushButton("④远程部署")
-        self.remote_deploy_button.setStyleSheet(button_style)
+
+        # 远程部署按钮使用不同颜色
+        deploy_button_style = """
+        QPushButton {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            background-color: #198754;
+            color: white;
+            font-weight: 500;
+            min-height: 20px;
+        }
+        QPushButton:hover {
+            background-color: #157347;
+        }
+        QPushButton:pressed {
+            background-color: #146c43;
+        }
+        """
+        self.remote_deploy_button = QPushButton("④ 远程部署")
+        self.remote_deploy_button.setStyleSheet(deploy_button_style)
         self.remote_deploy_button.clicked.connect(self.remote_deploy)
-        
+
         button_layout.addWidget(self.load_nodes_button)
         button_layout.addWidget(self.generate_yaml_button)
         button_layout.addWidget(self.save_yaml_button)
         button_layout.addWidget(self.remote_deploy_button)
-        
+        button_layout.addStretch()
+
         # YAML显示区域
-        yaml_label = QLabel("生成的YAML配置:")
+        yaml_label = QLabel("📄 生成的 YAML 配置:")
+        yaml_label.setStyleSheet("font-weight: 600; font-size: 14px; color: #212529; margin-top: 10px;")
         self.yaml_display = QTextEdit()
         self.yaml_display.setReadOnly(True)
-        
+        self.yaml_display.setStyleSheet("""
+            QTextEdit {
+                border: 2px solid #dee2e6;
+                border-radius: 6px;
+                background-color: #f8f9fa;
+                padding: 10px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+        """)
+
         layout.addWidget(nodes_group)
         layout.addWidget(type_group)
         layout.addLayout(button_layout)
         layout.addWidget(yaml_label)
         layout.addWidget(self.yaml_display)
-        
+
         self.grafana_tab.setLayout(layout)
 
     def load_nodes(self):
         try:
             nodes = self.db.get_nodes()
             self.nodes_table.setRowCount(len(nodes))
-            
+
             for i, (name, host, if_gaofang, status) in enumerate(nodes):
                 # 选择框
                 checkbox = QCheckBox()
                 self.nodes_table.setCellWidget(i, 0, checkbox)
-                
+
                 # 节点名
                 name_item = QTableWidgetItem(name)
                 self.nodes_table.setItem(i, 1, name_item)
-                
+
                 # IP地址
                 host_item = QTableWidgetItem(host)
                 self.nodes_table.setItem(i, 2, host_item)
-                
+
                 # 是否高防
                 gaofang_text = "是" if if_gaofang == 1 else "否"
                 node_status = "离线" if status == 1 else "在线"
@@ -482,9 +756,9 @@ class Main(QWidget):
                 node_item = QTableWidgetItem(node_status)
                 self.nodes_table.setItem(i, 3, gaofang_item)
                 self.nodes_table.setItem(i, 4, node_item)
-                
+
         except Exception as e:
-            QMessageBox.warning(self, "加载失败", f"无法加载节点信息：{e}")
+            show_msg(self, QMessageBox.Icon.Warning, "加载失败", f"无法加载节点信息：{e}")
 
     def generate_yaml(self):
         try:
@@ -722,14 +996,24 @@ class Main(QWidget):
                     yaml_str += f"  type: {target['type']}\n"
             
             self.yaml_display.setText(yaml_str)
-            
+
         except Exception as e:
-            QMessageBox.warning(self, "生成失败", f"无法生成YAML配置：{e}")
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("生成失败")
+            msg.setText(f"无法生成YAML配置：{e}")
+            msg.exec()
 
     def save_yaml(self):
         yaml_content = self.yaml_display.toPlainText().strip()
         if not yaml_content:
-            QMessageBox.warning(self, "提示", "请先生成YAML配置")
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("提示")
+            msg.setText("请先生成YAML配置")
+            msg.exec()
             return
 
         # 尝试自动生成路径
@@ -738,14 +1022,24 @@ class Main(QWidget):
             try:
                 with open(auto_path, 'w', encoding='utf-8') as f:
                     f.write(yaml_content)
-                QMessageBox.information(self, "成功", f"YAML配置已自动保存到：\n{auto_path}")
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("成功")
+                msg.setText(f"YAML配置已自动保存到：\n{auto_path}")
+                msg.exec()
                 self._last_saved_yaml_path = auto_path  # 供 remote_deploy 使用
             except Exception as e:
-                QMessageBox.warning(self, "保存失败", f"无法自动保存文件：{e}")
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("保存失败")
+                msg.setText(f"无法自动保存文件：{e}")
+                msg.exec()
         else:
             # 回退到手动选择（兼容无节点情况）
             file_path, _ = QFileDialog.getSaveFileName(
-                self, "保存YAML文件", "", 
+                self, "保存YAML文件", "",
                 "YAML文件 (*.yml *.yaml);;所有文件 (*)"
             )
             if not file_path:
@@ -753,10 +1047,20 @@ class Main(QWidget):
             try:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(yaml_content)
-                QMessageBox.information(self, "成功", f"YAML配置已保存到 {file_path}")
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("成功")
+                msg.setText(f"YAML配置已保存到 {file_path}")
+                msg.exec()
                 self._last_saved_yaml_path = file_path
             except Exception as e:
-                QMessageBox.warning(self, "保存失败", f"无法保存文件：{e}")
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("保存失败")
+                msg.setText(f"无法保存文件：{e}")
+                msg.exec()
 
     def remote_deploy(self):
         # 确保已有保存的 YAML 文件
@@ -764,12 +1068,22 @@ class Main(QWidget):
             # 如果还没保存过，先自动保存一次
             self.save_yaml()
             if not self._last_saved_yaml_path:
-                QMessageBox.warning(self, "错误", "未能生成有效的YAML文件路径")
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("错误")
+                msg.setText("未能生成有效的YAML文件路径")
+                msg.exec()
                 return
 
         yaml_path = self._last_saved_yaml_path
         if not os.path.exists(yaml_path):
-            QMessageBox.warning(self, "错误", f"YAML文件不存在：{yaml_path}")
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("错误")
+            msg.setText(f"YAML文件不存在：{yaml_path}")
+            msg.exec()
             return
 
         # 读取SSH配置
@@ -778,7 +1092,12 @@ class Main(QWidget):
         config = configparser.ConfigParser()
         config.read(config_path, encoding='utf-8')
         if not config.has_section('ssh'):
-            QMessageBox.warning(self, "错误", "配置文件中缺少SSH配置")
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("错误")
+            msg.setText("配置文件中缺少SSH配置")
+            msg.exec()
             return
 
         ssh_config = {
@@ -796,16 +1115,23 @@ class Main(QWidget):
                 selected_hosts.append(host)
 
         if not selected_hosts:
-            QMessageBox.warning(self, "提示", "请先选择要部署的节点")
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("提示")
+            msg.setText("请先选择要部署的节点")
+            msg.exec()
             return
 
         # 确认操作
-        reply = QMessageBox.question(
-            self, "确认部署",
-            f"将从本地文件部署：\n{yaml_path}\n\n目标服务器：\n{', '.join(selected_hosts)}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        msg = QMessageBox(self)
+        msg.setStyleSheet(MESSAGE_BOX_STYLE)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("确认部署")
+        msg.setText(f"将从本地文件部署：\n{yaml_path}\n\n目标服务器：\n{', '.join(selected_hosts)}")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+        reply = msg.exec()
         if reply == QMessageBox.StandardButton.No:
             return
 
@@ -815,10 +1141,17 @@ class Main(QWidget):
         self.worker.start()
 
     def handle_deploy_result(self, host, result):
+        msg = QMessageBox(self)
+        msg.setStyleSheet(MESSAGE_BOX_STYLE)
         if result == "部署成功":
-            QMessageBox.information(self, "成功", f"服务器 {host} 部署成功")
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle("成功")
+            msg.setText(f"服务器 {host} 部署成功")
         else:
-            QMessageBox.warning(self, "失败", f"服务器 {host} 部署失败: {result}")
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("失败")
+            msg.setText(f"服务器 {host} 部署失败: {result}")
+        msg.exec()
 
     def update_room(self):
         region = self.region_edit.currentText().strip()
@@ -850,23 +1183,40 @@ class Main(QWidget):
     def delete_selected_ip(self):
         selected_item = self.ip_list.currentItem()
         if not selected_item:
-            QMessageBox.warning(self, '警告', '请先选择一个 IP')
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("警告")
+            msg.setText("请先选择一个 IP")
+            msg.exec()
             return
 
         ip = selected_item.text()
-        reply = QMessageBox.question(
-            self, '确认删除',
-            f'确定删除 IP {ip} 吗？',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        msg = QMessageBox(self)
+        msg.setStyleSheet(MESSAGE_BOX_STYLE)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("确认删除")
+        msg.setText(f"确定删除 IP {ip} 吗？")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+        reply = msg.exec()
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 self.db.delete_ip(ip)
-                QMessageBox.information(self, '提示', f'{ip} 删除成功')
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("提示")
+                msg.setText(f"{ip} 删除成功")
+                msg.exec()
                 self.update_ip_list()
             except Exception as e:
-                QMessageBox.warning(self, '错误', f'删除失败：{e}')
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("错误")
+                msg.setText(f"删除失败：{e}")
+                msg.exec()
 
     def submit(self):
         region = self.region_edit.currentText().strip()
@@ -880,33 +1230,54 @@ class Main(QWidget):
         ip_type_name = self.iptype_edit.currentText()
 
         if not region or not room or not custom or not ip:
-            QMessageBox.warning(self, '警告', '请填写完整信息')
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("警告")
+            msg.setText("请填写完整信息")
+            msg.exec()
             return
 
         if not self.db.region_exists(region):
             similar = self.db.region_exists(region[:2])
             if similar:
-                reply = QMessageBox.question(
-                    self,
-                    "疑似相似地区",
-                    f"数据库中已存在类似地区 {similar}，是否继续添加 {region}？",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.No
-                )
+                msg = QMessageBox(self)
+                msg.setStyleSheet(MESSAGE_BOX_STYLE)
+                msg.setIcon(QMessageBox.Icon.Question)
+                msg.setWindowTitle("疑似相似地区")
+                msg.setText(f"数据库中已存在类似地区 {similar}，是否继续添加 {region}？")
+                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                msg.setDefaultButton(QMessageBox.StandardButton.No)
+                reply = msg.exec()
                 if reply == QMessageBox.StandardButton.No:
                     return
 
         if self.db.ip_exists(ip):
-            QMessageBox.warning(self, '警告', '该 IP 地址已存在')
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("警告")
+            msg.setText("该 IP 地址已存在")
+            msg.exec()
             return
 
         description = f"{room}-{custom}-{ip}-{operator_name}-{ip_type_name}"
         try:
             self.db.insert_record(ip, region, room, custom, operator_id, ip_type_id, description)
-            QMessageBox.information(self, '提示', '更新成功')
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle("提示")
+            msg.setText("更新成功")
+            msg.exec()
             self.update_ip_list()
         except Exception as e:
-            QMessageBox.warning(self, '警告', f'更新失败：{e}')
+            msg = QMessageBox(self)
+            msg.setStyleSheet(MESSAGE_BOX_STYLE)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("警告")
+            msg.setText(f"更新失败：{e}")
+            msg.exec()
     
     def _get_save_path_from_selected_nodes(self):
         """根据选中的节点生成默认 YAML 保存路径"""
@@ -930,5 +1301,10 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main = Main()
     main.show()
-    QMessageBox.information(main, '提示', '自用节点请选择地区 "自用地区"')
+    msg = QMessageBox(main)
+    msg.setStyleSheet(MESSAGE_BOX_STYLE)
+    msg.setIcon(QMessageBox.Icon.Information)
+    msg.setWindowTitle("提示")
+    msg.setText('自用节点请选择地区 "自用地区"')
+    msg.exec()
     sys.exit(app.exec())
