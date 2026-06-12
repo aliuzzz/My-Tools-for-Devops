@@ -1,0 +1,37 @@
+# CDN 爬虫多客户配置
+# 支持在一个文件中配置多个客户，脚本通过 --customer 指定执行哪个
+
+customers:
+  - name: "安徽移动"
+    user: 'xxxxxx'
+    passwd: 'xxxxxx'
+    cp_id: 'rpeo8bfg-liesf8hg8ugz0tsm'
+    target_domains:
+      - 'xxxxxxxx.cn'
+      - 'xxxxxx.cn'
+      - 'xxxxx.cn'
+      - 'xxxxxx.cn'
+      - 'xxxxxxxh.cn'
+    # v4.1 推送配置
+    push_api:
+      url: "http://192.168.1.16:10001/system/cdn/traffic/samples"
+      customer_id: "cust_anhui"
+      customer_name: "安徽移动"
+
+  - name: "淮北移动"
+    user: 'xxxxxx'
+    passwd: 'xxxxxx'
+    cp_id: 'qaukid28-1guquzxq0aghag1u'
+    target_domains:
+      - 'xxxxxxx.cn'
+    # v4.1 推送配置
+    push_api:
+      url: "http://192.168.1.16:10001/system/cdn/traffic/samples"
+      customer_id: "cust_huaibei"
+      customer_name: "淮北移动"
+
+# 全局默认配置（可选）
+defaults:
+  unit_scale: 1000
+  download_dir: "."
+  auto_push: true
